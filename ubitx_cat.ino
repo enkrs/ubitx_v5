@@ -14,7 +14,6 @@ static byte rxBufferCheckCount = 0;
 #define CAT_RECEIVE_TIMEOUT 500
 static byte cat[5]; 
 static byte insideCat = 0; 
-static byte useOpenRadioControl = 0;
 
 //for broken protocol
 #define CAT_RECEIVE_TIMEOUT 500
@@ -123,7 +122,7 @@ void catReadEEPRom(void)
   strcat(b, ":");
   itoa((int) cat[1], c, 16);
   strcat(b, c);
-  printLine2(b);
+  printLine6(b);
 */
 
   cat[0] = 0;
@@ -279,7 +278,7 @@ void processCATCommand2(byte* cmd) {
     response[0]=0;
     Serial.write(response, 1);
     //sprintf(b, "set:%ld", f); 
-    //printLine2(b);
+    //printLine6(b);
     break;
 
   case 0x02:
@@ -298,7 +297,7 @@ void processCATCommand2(byte* cmd) {
     else
       response[4] = 0x00; //LSB
     Serial.write(response,5);
-    //printLine2("cat:getfreq");
+    //printLine6("cat:getfreq");
     break;
     
   case 0x07: // set mode
@@ -309,7 +308,7 @@ void processCATCommand2(byte* cmd) {
     response[0] = 0x00;
     Serial.write(response, 1);
     setFrequency(frequency);
-      //printLine2("cat: mode changed");
+      //printLine6("cat: mode changed");
     //updateDisplay();
     break;   
  
@@ -379,7 +378,7 @@ void processCATCommand2(byte* cmd) {
     itoa(cmd[4], b, 16);
     strcat(b, ">");
     strcat(b, c);
-    printLine2(b);
+    printLine6(b);
     response[0] = 0x00;
     Serial.write(response[0]);
   }
@@ -431,7 +430,7 @@ void checkCAT(){
 
   if (cat[4] != 0xf7 && cat[4] != 0xbb && cat[4] != 0x03){
     sprintf(b, "%d %02x %02x%02x%02x%02x", catCount, cat[4],cat[0], cat[1], cat[2], cat[3]);  
-    printLine2(b);  
+    printLine6(b);  
   }
   
   processCATCommand2(cat);

@@ -4,6 +4,15 @@
  * The upper line of the display is constantly used to display frequency and status
  * of the radio. Occasionally, it is used to provide a two-line information that is 
  * quickly cleared up.
+ *   0123456789012345             0123456789012345
+ *  0X          USB A            0X          USB A
+ *  1X6".       """""            1X6".       """""
+ *  2X"""                        2X"""            
+ *  3X 1"2"3".4"5"6"             3X 1"2"3".4"5"6" 
+ *  4X """""""""""""             4X """"""""""""" 
+ *  5X                           5X               
+ *  6XBAND SELECT  >"            6XCW SPEED      "
+ *  7X"""" """"""                7X"""" """"""    
  */
 
 
@@ -15,102 +24,89 @@ int btnDown(){
     return 1;
 }
 
+void btnWaitUp(){
+  while (digitalRead(FBUTTON) == LOW)
+    active_delay(50);
+  active_delay(50);
+}
+
 // The generic routine to display one line on the LCD 
-void printLine(char linenmbr, const char *c) {
+void printLine(unsigned char linenmbr, const char *c) {
   if (c[0] == 0) {
-    u8x8.clearLine(linenmbr * 2);
-    u8x8.clearLine(linenmbr * 2 + 1);
+    u8x8.clearLine(linenmbr);
+    u8x8.clearLine(linenmbr + 1);
     return;
   }
-  if (strcmp(c, printBuff[linenmbr])) {     // only refresh the display when there was a change
-    u8x8.draw1x2String(0, linenmbr * 2, c);
-    strcpy(printBuff[linenmbr], c);
 
-    for (byte i = strlen(c); i < 16; i++) { // add white spaces until the end of the 16 characters line is reached
-      u8x8.draw1x2Glyph(i, linenmbr * 2, ' ');
-    }
+  u8x8.draw1x2String(1, linenmbr, c);
+
+  for (byte i = strlen(c); i < 15; i++) { // add white spaces until the end of the 16 characters line is reached
+    u8x8.draw1x2Glyph(i + 1, linenmbr, ' ');
   }
 }
 
 
 //  short cut to print to the first line
-void printLine1(const char *c){
-  printLine(1,c);
+void printLine1(const char *c) {
+  printLine(4,c);
 }
 //  short cut to print to the first line
-void printLine2(const char *c){
-  printLine(0,c);
+void printLine6(const char *c) {
+  printLine(6,c);
+}
+void printLine6icon(const char *c, char icon) {
+  printLine(6,c);
+  u8x8.setFont(u8x8_font_open_iconic_arrow_1x1);
+  u8x8.draw2x2Glyph(14,6,icon);
+  u8x8.setFont(u8x8_font_amstrad_cpc_extended_f); 
 }
 
 // this builds up the top line of the display with frequency and mode
 void updateDisplay() {
-  // tks Jack Purdum W8TEE
-  // replaced fsprint commmands by str commands for code size reduction
-
-  memset(c, 0, sizeof(c));
-  memset(b, 0, sizeof(b));
-
-  ultoa(frequency, b, DEC);
-
-  if (inTx){
+  if (inTx) {
+    u8x8.draw1x2Glyph(11,0,' ');
+    u8x8.setInverseFont(1);
     if (cwTimeout > 0)
-      strcpy(c, "   CW:");
+      u8x8.draw1x2String(12,0," CW ");
     else
-      strcpy(c, "   TX:");
+      u8x8.draw1x2String(12,0," TX ");
+    u8x8.setInverseFont(0);
   }
   else {
     if (ritOn)
-      strcpy(c, "RIT ");
-    else {
-      if (isUSB)
-        strcpy(c, "USB ");
-      else
-        strcpy(c, "LSB ");
-    }
-    if (vfoActive == VFO_A) // VFO A is active
-      strcat(c, "A:");
+      u8x8.draw1x2String(11,0,"RIT");
+    else if (isUSB)
+      u8x8.draw1x2String(11,0,"USB");
     else
-      strcat(c, "B:");
+      u8x8.draw1x2String(11,0,"LSB");
+
+    if (vfoActive == VFO_A) // VFO A is active
+      u8x8.draw1x2Glyph(15,0,'A');
+    else
+      u8x8.draw1x2Glyph(15,0,'B');
   }
 
-
+  memset(b, 0, sizeof(b));
+  ultoa(frequency, b, DEC);
 
   //one mhz digit if less than 10 M, two digits if more
+  unsigned char n = 0;
   if (frequency < 10000000l){
-    c[6] = ' ';
-    c[7]  = b[0];
-    strcat(c, ".");
-    strncat(c, &b[1], 3);    
-    strcat(c, ".");
-    strncat(c, &b[4], 3);
-  }
-  else {
-    strncat(c, b, 2);
-    strcat(c, ".");
-    strncat(c, &b[2], 3);
-    strcat(c, ".");
-    strncat(c, &b[5], 3);    
+    u8x8.draw2x2Glyph(1, 1, b[n++]);
+    u8x8.draw1x2Glyph(3, 1, '.');
+  } else {
+    u8x8.draw2x2Glyph(1, 1, b[n++]);
+    u8x8.draw2x2Glyph(3, 1, b[n++]);
+    u8x8.draw1x2Glyph(5, 1, '.');
   }
 
-  if (inTx)
-    strcat(c, " TX");
-  printLine(1, c);
-
-/*
-  //now, the second line
-  memset(c, 0, sizeof(c));
-  memset(b, 0, sizeof(b));
-
-  if (inTx)
-    strcat(c, "TX ");
-  else if (ritOn)
-    strcpy(c, "RIT");
-
-  strcpy(c, "      \xff");
-  drawMeter(meter_reading);
-  strcat(c, meter);
-  strcat(c, "\xff");
-  printLine2(c);*/
+  u8x8.draw2x2Glyph(2, 3, b[n++]);
+  u8x8.draw2x2Glyph(4, 3, b[n++]);
+  u8x8.draw2x2Glyph(6, 3, b[n++]);
+  u8x8.draw1x2Glyph(8, 3, '.');
+  u8x8.draw2x2Glyph(9, 3, b[n++]);
+  u8x8.draw2x2Glyph(11, 3, b[n++]);
+  u8x8.draw2x2Glyph(13, 3, b[n]);
 }
 
 int enc_prev_state = 3;
@@ -143,7 +139,7 @@ int enc_read(void) {
   byte newState;
   int enc_speed = 0;
   
-  long stop_by = millis() + 50;
+  unsigned long stop_by = millis() + 50;
   
   while (millis() < stop_by) { // check if the previous state was stable
     newState = enc_state(); // Get current state  

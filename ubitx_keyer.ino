@@ -116,7 +116,7 @@ char update_PaddleLatch(byte isUpdateKeyState) {
   int paddle = 801; //YL3AME:analogRead(ANALOG_KEYER);
   //diagnostic, VU2ESE
   //itoa(paddle, b, 10);
-  //printLine2(b);
+  //printLine6(b);
 
   if (paddle >= cwAdcDashFrom && paddle <= cwAdcDashTo)
     tmpKeyerControl |= DAH_L;
@@ -148,7 +148,7 @@ void cwKeyer(void){
   lastPaddle = 0;
   bool continue_loop = true;
   unsigned tmpKeyControl = 0;
-  
+
   if( Iambic_Key ) {
     while(continue_loop) {
       switch (keyerState) {

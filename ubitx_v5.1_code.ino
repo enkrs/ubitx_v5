@@ -109,8 +109,6 @@ U8X8_SSD1306_128X64_NONAME_HW_I2C u8x8(/* reset=*/ OLED_ENABLE);
  * the serial port as we can easily run out of buffer space. This is done in the serial_in_count variable.
  */
 char c[30], b[30];      
-char printBuff[2][31];  //mirrors what is showing on the two lines of the display
-int count = 0;          //to generally count ticks, loops, etc
 
 /** 
  *  The second set of 16 pins on the Raduino's bottom connector are have the three clock outputs and the digital lines to control the rig.
@@ -212,7 +210,7 @@ byte menuOn = 0;              //set to 1 when the menu is being displayed, if a 
 unsigned long cwTimeout = 0;  //milliseconds to go before the cw transmit line is released and the radio goes back to rx mode
 unsigned long dbgCount = 0;   //not used now
 unsigned char txFilter = 0;   //which of the four transmit filters are in use
-boolean modeCalibrate = false;//this mode of menus shows extended menus to calibrate the oscillators and choose the proper
+boolean extendedMenu = false; //this mode of menus shows extended menus to calibrate the oscillators and choose the proper
                               //beat frequency
 
 /**
@@ -224,7 +222,7 @@ boolean modeCalibrate = false;//this mode of menus shows extended menus to calib
  * Our own delay. During any delay, the raduino should still be processing a few times. 
  */
 
-void active_delay(int delay_by){
+void active_delay(unsigned int delay_by){
   unsigned long timeStart = millis();
 
   while (millis() - timeStart <= delay_by) {
@@ -287,23 +285,15 @@ void setTXFilters(unsigned long freq){
  */
  
 void setFrequency(unsigned long f){
-  uint64_t osc_f, firstOscillator, secondOscillator;
- 
+  if (f < LOWEST_FREQ)
+    f = LOWEST_FREQ;
+  if (f > HIGHEST_FREQ)
+    f = HIGHEST_FREQ;
+
   setTXFilters(f);
 
-/*
   if (isUSB){
-    si5351bx_setfreq(2, firstIF  + f);
-    si5351bx_setfreq(1, firstIF + usbCarrier);
-  }
-  else{
     si5351bx_setfreq(2, firstIF + f);
-    si5351bx_setfreq(1, firstIF - usbCarrier);
-  }
-*/
-  //alternative to reduce the intermod spur
-  if (isUSB){
-    si5351bx_setfreq(2, firstIF  + f);
     si5351bx_setfreq(1, firstIF + usbCarrier);
   }
   else{
@@ -322,8 +312,6 @@ void setFrequency(unsigned long f){
  */
  
 void startTx(byte txMode){
-  unsigned long tx_freq = 0;  
-    
   digitalWrite(TX_RX, 1);
   inTx = 1;
   
@@ -437,8 +425,6 @@ void checkPTT(){
 }
 
 void checkButton(){
-  int i, t1, t2, knob, new_knob;
-
   //only if the button is pressed
   if (!btnDown())
     return;
@@ -498,8 +484,6 @@ void doTuning(){
  * RIT only steps back and forth by 100 hz at a time
  */
 void doRIT(){
-  unsigned long newFreq;
- 
   int knob = enc_read();
   unsigned long old_freq = frequency;
 
@@ -636,11 +620,11 @@ void initPorts(){
 
   pinMode(OLED_ENABLE, OUTPUT);
 }
-
 void setup()
 {
   Serial.begin(38400);
   Serial.flush();  
+
   
   u8x8.begin();
   u8x8.setFont(u8x8_font_amstrad_cpc_extended_f); 
@@ -648,7 +632,7 @@ void setup()
 
   //we print this line so this shows up even if the raduino 
   //crashes later in the code
-  printLine2("uBITX v5.1"); 
+  printLine6("uBITX v5.1"); 
   //active_delay(500);
 
 //  initMeter(); //not used in this build
@@ -669,7 +653,6 @@ void setup()
  * The loop checks for keydown, ptt, function button and tuning.
  */
 
-byte flasher = 0;
 void loop(){ 
   
   cwKeyer(); 

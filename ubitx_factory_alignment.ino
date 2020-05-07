@@ -27,25 +27,25 @@ void factory_alignment(){
   calibrateClock();
 
   if (calibration == 0){
-    printLine2("Setup Aborted");
+    printLine6("Setup Aborted");
     return;
   }
 
   //move it away to 7.160 for an LSB signal
   setFrequency(7170000l);
   updateDisplay();
-  printLine2("#2 BFO");
+  printLine6("#2 BFO");
   active_delay(1000);
 
   usbCarrier = 11053000l;
   menuSetupCarrier(1);
 
   if (usbCarrier == 11994999l){
-    printLine2("Setup Aborted");
+    printLine6("Setup Aborted");
     return;
   }
   
-  printLine2("#3:Test 3.5MHz");
+  printLine6("#3:Test 3.5MHz");
   isUSB = false;
   setFrequency(3500000l);
   updateDisplay();
@@ -56,7 +56,7 @@ void factory_alignment(){
   }
 
   btnWaitForClick();
-  printLine2("#4:Test 7MHz");
+  printLine6("#4:Test 7MHz");
 
   setFrequency(7150000l);
   updateDisplay();
@@ -66,7 +66,7 @@ void factory_alignment(){
   }
 
   btnWaitForClick();
-  printLine2("#5:Test 14MHz");
+  printLine6("#5:Test 14MHz");
 
   isUSB = true;
   setFrequency(14000000l);
@@ -77,7 +77,7 @@ void factory_alignment(){
   }
 
   btnWaitForClick();
-  printLine2("#6:Test 28MHz");
+  printLine6("#6:Test 28MHz");
 
   setFrequency(28000000l);
   updateDisplay();
@@ -86,7 +86,7 @@ void factory_alignment(){
     active_delay(100);
   }
 
-  printLine2("Alignment done");
+  printLine6("Alignment done");
   active_delay(1000);
 
   isUSB = false;
