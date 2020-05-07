@@ -54,7 +54,7 @@ char lastPaddle = 0;
 
 //reads the analog keyer pin and reports the paddle
 byte getPaddle(){
-  int paddle = analogRead(ANALOG_KEYER);
+  int paddle = 801; //YL3AME:analogRead(ANALOG_KEYER);
 
   if (paddle > 800)         // above 4v is up
     return 0;
@@ -113,7 +113,7 @@ unsigned char keyerState = IDLE;
 char update_PaddleLatch(byte isUpdateKeyState) {
   unsigned char tmpKeyerControl = 0;
   
-  int paddle = analogRead(ANALOG_KEYER);
+  int paddle = 801; //YL3AME:analogRead(ANALOG_KEYER);
   //diagnostic, VU2ESE
   //itoa(paddle, b, 10);
   //printLine2(b);

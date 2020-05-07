@@ -72,12 +72,13 @@
  * ground and +5v lines available on the connector. This implments the tuning mechanism
  */
 
-#define ENC_A (A0)
-#define ENC_B (A1)
+#define ENC_A (9)
+#define ENC_B (10)
 #define FBUTTON (A2)
 #define PTT   (A3)
 #define ANALOG_KEYER (A6)
 #define ANALOG_SPARE (A7)
+#define OLED_ENABLE (8)
 
 /** 
  * The Raduino board is the size of a standard 16x2 LCD panel. It has three connectors:
@@ -93,8 +94,8 @@
  * We include the library and declare the configuration of the LCD panel too
  */
 
-#include <LiquidCrystal.h>
-LiquidCrystal lcd(8,9,10,11,12,13);
+#include <U8x8lib.h>
+U8X8_SSD1306_128X64_NONAME_HW_I2C u8x8(/* reset=*/ OLED_ENABLE);
 
 /**
  * The Arduino, unlike C/C++ on a regular computer with gigabytes of RAM, has very little memory.
@@ -183,7 +184,7 @@ int count = 0;          //to generally count ticks, loops, etc
 
 char ritOn = 0;
 char vfoActive = VFO_A;
-int8_t meter_reading = 0; // a -1 on meter makes it invisible
+int8_t meter_reading = -1; // was 0, a -1 on meter makes it invisible
 unsigned long vfoA=7150000L, vfoB=14200000L, sideTone=800, usbCarrier;
 char isUsbVfoA=0, isUsbVfoB=1;
 unsigned long frequency, ritRxFrequency, ritTxFrequency;  //frequency is the current frequency on the dial
@@ -271,32 +272,6 @@ void setTXFilters(unsigned long freq){
     digitalWrite(TX_LPF_C, 1);    
   }
 }
-
-
-void setTXFilters_v5(unsigned long freq){
-  
-  if (freq > 21000000L){  // the default filter is with 35 MHz cut-off
-    digitalWrite(TX_LPF_A, 0);
-    digitalWrite(TX_LPF_B, 0);
-    digitalWrite(TX_LPF_C, 0);
-  }
-  else if (freq >= 14000000L){ //thrown the KT1 relay on, the 30 MHz LPF is bypassed and the 14-18 MHz LPF is allowd to go through
-    digitalWrite(TX_LPF_A, 1);
-    digitalWrite(TX_LPF_B, 0);
-    digitalWrite(TX_LPF_C, 0);
-  }
-  else if (freq > 7000000L){
-    digitalWrite(TX_LPF_A, 0);
-    digitalWrite(TX_LPF_B, 1);
-    digitalWrite(TX_LPF_C, 0);    
-  }
-  else {
-    digitalWrite(TX_LPF_A, 0);
-    digitalWrite(TX_LPF_B, 0);
-    digitalWrite(TX_LPF_C, 1);    
-  }
-}
-
 
 /**
  * This is the most frequently called function that configures the 
@@ -548,12 +523,12 @@ void initSettings(){
   byte x;
   //read the settings from the eeprom and restore them
   //if the readings are off, then set defaults
-  EEPROM.get(MASTER_CAL, calibration);
-  EEPROM.get(USB_CAL, usbCarrier);
-  EEPROM.get(VFO_A, vfoA);
-  EEPROM.get(VFO_B, vfoB);
-  EEPROM.get(CW_SIDETONE, sideTone);
-  EEPROM.get(CW_SPEED, cwSpeed);
+  calibration = 154117; // EEPROM.get(MASTER_CAL, calibration);
+  usbCarrier = 11056273l; // EEPROM.get(USB_CAL, usbCarrier);
+  vfoA = 3573000l; // EEPROM.get(VFO_A, vfoA);
+  vfoB = 7074000l; // EEPROM.get(VFO_B, vfoB);
+  sideTone = 800; // EEPROM.get(CW_SIDETONE, sideTone);
+  cwSpeed = 100; // EEPROM.get(CW_SPEED, cwSpeed);
   
   
   if (usbCarrier > 11060000l || usbCarrier < 11048000l)
@@ -572,8 +547,9 @@ void initSettings(){
    * is taken as 'uninitialized
    */
 
-  EEPROM.get(VFO_A_MODE, x);
+  isUsbVfoA = 1;// EEPROM.get(VFO_A_MODE, x);
  
+  /*
   switch(x){
     case VFO_MODE_USB:
       isUsbVfoA = 1;
@@ -587,8 +563,10 @@ void initSettings(){
       else 
         isUsbVfoA = 0;      
   }
+  */
 
-  EEPROM.get(VFO_B_MODE, x);
+  isUsbVfoB = 1; // EEPROM.get(VFO_B_MODE, x);
+  /*
   switch(x){
     case VFO_MODE_USB:
       isUsbVfoB = 1;
@@ -602,6 +580,7 @@ void initSettings(){
       else 
         isUsbVfoB = 0;      
   }
+  */
 
   //set the current mode
   isUSB = isUsbVfoA;
@@ -609,7 +588,7 @@ void initSettings(){
   /*
    * The keyer type splits into two variables
    */
-   EEPROM.get(CW_KEY_TYPE, x);
+   x = 1; // EEPROM.get(CW_KEY_TYPE, x);
 
    if (x == 0)
     Iambic_Key = false;
@@ -628,7 +607,6 @@ void initPorts(){
 
   analogReference(DEFAULT);
 
-  //??
   pinMode(ENC_A, INPUT_PULLUP);
   pinMode(ENC_B, INPUT_PULLUP);
   pinMode(FBUTTON, INPUT_PULLUP);
@@ -638,7 +616,7 @@ void initPorts(){
 //  digitalWrite(FBUTTON, HIGH);
 
   pinMode(PTT, INPUT_PULLUP);
-  pinMode(ANALOG_KEYER, INPUT_PULLUP);
+  //YL3AME:pinMode(ANALOG_KEYER, INPUT_PULLUP);
 
   pinMode(CW_TONE, OUTPUT);  
   digitalWrite(CW_TONE, 0);
@@ -655,6 +633,8 @@ void initPorts(){
 
   pinMode(CW_KEY, OUTPUT);
   digitalWrite(CW_KEY, 0);
+
+  pinMode(OLED_ENABLE, OUTPUT);
 }
 
 void setup()
@@ -662,7 +642,9 @@ void setup()
   Serial.begin(38400);
   Serial.flush();  
   
-  lcd.begin(16, 2);
+  u8x8.begin();
+  u8x8.setFont(u8x8_font_amstrad_cpc_extended_f); 
+  u8x8.setPowerSave(0);
 
   //we print this line so this shows up even if the raduino 
   //crashes later in the code

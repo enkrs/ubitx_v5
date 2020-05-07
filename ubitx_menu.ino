@@ -641,7 +641,7 @@ void menuReadADC(int btn){
   delay(500);
 
   while (!btnDown()){
-    adc = analogRead(ANALOG_KEYER);
+    adc = 801; //YL3AME:analogRead(ANALOG_KEYER);
     itoa(adc, b, 10);
     printLine1(b);
   }
