@@ -222,7 +222,7 @@ boolean extendedMenu = false; //this mode of menus shows extended menus to calib
  * Our own delay. During any delay, the raduino should still be processing a few times. 
  */
 
-void active_delay(unsigned int delay_by){
+void activeDelay(unsigned int delay_by){
   unsigned long timeStart = millis();
 
   while (millis() - timeStart <= delay_by) {
@@ -417,7 +417,7 @@ void checkPTT(){
     
   if (digitalRead(PTT) == 0 && inTx == 0){
     startTx(TX_SSB);
-    active_delay(50); //debounce the PTT
+    activeDelay(50); //debounce the PTT
   }
 	
   if (digitalRead(PTT) == 1 && inTx == 1)
@@ -428,15 +428,15 @@ void checkButton(){
   //only if the button is pressed
   if (!btnDown())
     return;
-  active_delay(50);
+  activeDelay(50);
   if (!btnDown()) //debounce
     return;
  
   doMenu();
   //wait for the button to go up again
   while(btnDown())
-    active_delay(10);
-  active_delay(50);//debounce
+    activeDelay(10);
+  activeDelay(50);//debounce
 }
 
 
@@ -633,7 +633,7 @@ void setup()
   //we print this line so this shows up even if the raduino 
   //crashes later in the code
   printLine6("uBITX v5.1"); 
-  //active_delay(500);
+  //activeDelay(500);
 
 //  initMeter(); //not used in this build
   initSettings();

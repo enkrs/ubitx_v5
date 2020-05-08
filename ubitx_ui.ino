@@ -26,8 +26,8 @@ int btnDown(){
 
 void btnWaitUp(){
   while (digitalRead(FBUTTON) == LOW)
-    active_delay(50);
-  active_delay(50);
+    activeDelay(50);
+  activeDelay(50);
 }
 
 // The generic routine to display one line on the LCD 
@@ -54,11 +54,14 @@ void printLine1(const char *c) {
 void printLine6(const char *c) {
   printLine(6,c);
 }
-void printLine6icon(const char *c, char icon) {
-  printLine(6,c);
-  u8x8.setFont(u8x8_font_open_iconic_arrow_1x1);
-  u8x8.draw2x2Glyph(14,6,icon);
-  u8x8.setFont(u8x8_font_amstrad_cpc_extended_f); 
+void printLine6value(const char *c, const char *v) {
+  u8x8.draw1x2String(1, 6, c);
+  u8x8.draw1x2String(15 - strlen(v) + 1, 6, c);
+  // 0123456789012345
+  // X[-5-]xxxx[-6--]
+  for (byte i = strlen(c) + 1; i <= 15 - strlen(v); i++) { // add white spaces until the end of the 16 characters line is reached
+    u8x8.draw1x2Glyph(i, linenmbr, '/');
+  }
 }
 
 // this builds up the top line of the display with frequency and mode
@@ -165,7 +168,7 @@ int enc_read(void) {
       }
     enc_prev_state = newState; // Record state for next pulse interpretation
     enc_speed++;
-    active_delay(1);
+    activeDelay(1);
   }
   return(result);
 }

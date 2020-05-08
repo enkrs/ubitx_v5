@@ -5,10 +5,10 @@
 
 void btnWaitForClick(){
   while(!btnDown())
-    active_delay(50);
+    activeDelay(50);
   while(btnDown())
-    active_delay(50);
- active_delay(50);
+    activeDelay(50);
+ activeDelay(50);
 }
 
 /**
@@ -35,7 +35,7 @@ void factory_alignment(){
   setFrequency(7170000l);
   updateDisplay();
   printLine6("#2 BFO");
-  active_delay(1000);
+  activeDelay(1000);
 
   usbCarrier = 11053000l;
   menuSetupCarrier(1);
@@ -52,7 +52,7 @@ void factory_alignment(){
 
   while (!btnDown()){
     checkPTT();
-    active_delay(100);
+    activeDelay(100);
   }
 
   btnWaitForClick();
@@ -62,7 +62,7 @@ void factory_alignment(){
   updateDisplay();
   while (!btnDown()){
     checkPTT();
-    active_delay(100);
+    activeDelay(100);
   }
 
   btnWaitForClick();
@@ -73,7 +73,7 @@ void factory_alignment(){
   updateDisplay();
   while (!btnDown()){
     checkPTT();
-    active_delay(100);
+    activeDelay(100);
   }
 
   btnWaitForClick();
@@ -83,11 +83,11 @@ void factory_alignment(){
   updateDisplay();
   while (!btnDown()){
     checkPTT();
-    active_delay(100);
+    activeDelay(100);
   }
 
   printLine6("Alignment done");
-  active_delay(1000);
+  activeDelay(1000);
 
   isUSB = false;
   setFrequency(7150000l);

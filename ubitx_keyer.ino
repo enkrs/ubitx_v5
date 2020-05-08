@@ -190,7 +190,7 @@ void cwKeyer(void){
           //modified KD8CEC
           if (!inTx){
             //DelayTime Option
-            active_delay(delayBeforeCWStartTime * 2);
+            activeDelay(delayBeforeCWStartTime * 2);
             
             keyDown = 0;
             cwTimeout = millis() + cwDelayTime * 10;  //+ CW_TIMEOUT;
@@ -237,7 +237,7 @@ void cwKeyer(void){
         // if we are here, it is only because the key is pressed
         if (!inTx){
           //DelayTime Option
-          active_delay(delayBeforeCWStartTime * 2);
+          activeDelay(delayBeforeCWStartTime * 2);
           
           keyDown = 0;
           cwTimeout = millis() + cwDelayTime * 10;  //+ CW_TIMEOUT; 
@@ -246,7 +246,7 @@ void cwKeyer(void){
         cwKeydown();
         
         while ( update_PaddleLatch(0) == DIT_L ) 
-          active_delay(1);
+          activeDelay(1);
           
         cwKeyUp();
       }
