@@ -110,8 +110,8 @@ unsigned char keyerState = IDLE;
 
 //Below is a test to reduce the keying error. do not delete lines
 //create by KD8CEC for compatible with new CW Logic
-char update_PaddleLatch(byte isUpdateKeyState) {
-  unsigned char tmpKeyerControl = 0;
+uint8_t update_PaddleLatch(byte isUpdateKeyState) {
+  uint8_t tmpKeyerControl = 0;
   
   int paddle = 801; //YL3AME:analogRead(ANALOG_KEYER);
   //diagnostic, VU2ESE
@@ -146,8 +146,8 @@ char update_PaddleLatch(byte isUpdateKeyState) {
 ******************************************************************************/
 void cwKeyer(void){
   lastPaddle = 0;
-  bool continue_loop = true;
-  unsigned tmpKeyControl = 0;
+  uint8_t continue_loop = 1;
+  uint8_t tmpKeyControl = 0;
 
   if( Iambic_Key ) {
     while(continue_loop) {
@@ -163,7 +163,7 @@ void cwKeyer(void){
               cwTimeout = 0;
               stopTx();
             }
-            continue_loop = false;
+            continue_loop = 0;
           }
           break;
     

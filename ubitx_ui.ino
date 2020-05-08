@@ -16,8 +16,8 @@
  */
 
 
-//returns true if the button is pressed
-int btnDown(){
+//returns 1 if the button is pressed
+uint8_t btnDown(){
   if (digitalRead(FBUTTON) == HIGH)
     return 0;
   else
@@ -56,11 +56,11 @@ void printLine6(const char *c) {
 }
 void printLine6value(const char *c, const char *v) {
   u8x8.draw1x2String(1, 6, c);
-  u8x8.draw1x2String(15 - strlen(v) + 1, 6, c);
+  u8x8.draw1x2String(15 - strlen(v) + 1, 6, v);
   // 0123456789012345
   // X[-5-]xxxx[-6--]
   for (byte i = strlen(c) + 1; i <= 15 - strlen(v); i++) { // add white spaces until the end of the 16 characters line is reached
-    u8x8.draw1x2Glyph(i, linenmbr, '/');
+    u8x8.draw1x2Glyph(i, 6, ' ');
   }
 }
 
@@ -69,24 +69,15 @@ void updateDisplay() {
   if (inTx) {
     u8x8.draw1x2Glyph(11,0,' ');
     u8x8.setInverseFont(1);
-    if (cwTimeout > 0)
-      u8x8.draw1x2String(12,0," CW ");
-    else
-      u8x8.draw1x2String(12,0," TX ");
+    u8x8.draw1x2String(12,0,cwTimeout > 0 ? " CW " : " TX ");
     u8x8.setInverseFont(0);
-  }
-  else {
+  } else {
     if (ritOn)
       u8x8.draw1x2String(11,0,"RIT");
-    else if (isUSB)
-      u8x8.draw1x2String(11,0,"USB");
     else
-      u8x8.draw1x2String(11,0,"LSB");
-
-    if (vfoActive == VFO_A) // VFO A is active
-      u8x8.draw1x2Glyph(15,0,'A');
-    else
-      u8x8.draw1x2Glyph(15,0,'B');
+      u8x8.draw1x2String(11,0, isUSB ? "USB" : "LSB");
+    u8x8.draw1x2Glyph(14,0,' ');
+    u8x8.draw1x2Glyph(15,0, vfoActive == VFO_A ? 'A' : 'B');
   }
 
   memset(b, 0, sizeof(b));

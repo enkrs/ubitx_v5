@@ -1,3 +1,4 @@
+#ifdef HAS_FACTORY_ALIGNMENT
 
 /**
  * This procedure is only for those who have a signal generator/transceiver tuned to exactly 7.150 and a dummy load 
@@ -46,7 +47,7 @@ void factory_alignment(){
   }
   
   printLine6("#3:Test 3.5MHz");
-  isUSB = false;
+  isUSB = 0;
   setFrequency(3500000l);
   updateDisplay();
 
@@ -68,7 +69,7 @@ void factory_alignment(){
   btnWaitForClick();
   printLine6("#5:Test 14MHz");
 
-  isUSB = true;
+  isUSB = 1;
   setFrequency(14000000l);
   updateDisplay();
   while (!btnDown()){
@@ -89,9 +90,10 @@ void factory_alignment(){
   printLine6("Alignment done");
   activeDelay(1000);
 
-  isUSB = false;
+  isUSB = 0;
   setFrequency(7150000l);
   updateDisplay();  
   
 }
 
+#endif

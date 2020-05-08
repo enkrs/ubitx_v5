@@ -315,7 +315,7 @@ void processCATCommand2(byte* cmd) {
   case 0x08: // PTT On
     if (!inTx) {
       response[0] = 0;
-      txCAT = true;
+      txCAT = 1;
       startTx(TX_SSB);
       updateDisplay();
     } else {
@@ -328,7 +328,7 @@ void processCATCommand2(byte* cmd) {
   case 0x88 : //PTT OFF
     if (inTx) {
       stopTx();
-      txCAT = false;
+      txCAT = 0;
     }
     response[0] = 0;
     Serial.write(response,1);
@@ -356,8 +356,8 @@ void processCATCommand2(byte* cmd) {
        
   case 0xf7:
     {
-      boolean isHighSWR = false;
-      boolean isSplitOn = false;
+      uint8_t isHighSWR = 0;
+      uint8_t isSplitOn = 0;
   
       /*
         Inverted -> *ptt = ((p->tx_status & 0x80) == 0); <-- souce code in ft817.c (hamlib)
@@ -378,34 +378,32 @@ void processCATCommand2(byte* cmd) {
     itoa(cmd[4], b, 16);
     strcat(b, ">");
     strcat(b, c);
-    printLine6(b);
+    u8x8.drawString(1,5,b);
     response[0] = 0x00;
     Serial.write(response[0]);
   }
 
-  insideCat = false;
+  insideCat = 0;
 }
 
 int catCount = 0;
-void checkCAT(){
+void checkCAT()
+{
   byte i;
 
   //Check Serial Port Buffer
   if (Serial.available() == 0) {      //Set Buffer Clear status
     rxBufferCheckCount = 0;
     return;
-  }
-  else if (Serial.available() < 5) {                         //First Arrived
+  } else if (Serial.available() < 5) {                         //First Arrived
     if (rxBufferCheckCount == 0){
       rxBufferCheckCount = Serial.available();
       rxBufferArriveTime = millis() + CAT_RECEIVE_TIMEOUT;  //Set time for timeout
-    }
-    else if (rxBufferArriveTime < millis()){                //Clear Buffer
+    } else if (rxBufferArriveTime < millis()){                //Clear Buffer
       for (i = 0; i < Serial.available(); i++)
         rxBufferCheckCount = Serial.read();
       rxBufferCheckCount = 0;
-    }
-    else if (rxBufferCheckCount < Serial.available()){      // Increase buffer count, slow arrive
+    } else if (rxBufferCheckCount < Serial.available()){      // Increase buffer count, slow arrive
       rxBufferCheckCount = Serial.available();
       rxBufferArriveTime = millis() + CAT_RECEIVE_TIMEOUT;  //Set time for timeout
     }
@@ -428,10 +426,20 @@ void checkCAT(){
 **/
   catCount++;
 
+  /*
   if (cat[4] != 0xf7 && cat[4] != 0xbb && cat[4] != 0x03){
-    sprintf(b, "%d %02x %02x%02x%02x%02x", catCount, cat[4],cat[0], cat[1], cat[2], cat[3]);  
-    printLine6(b);  
+    //sprintf(b, "%d %02x %02x%02x%02x%02x", catCount, cat[4],cat[0], cat[1], cat[2], cat[3]);  
+    itoa(catCount, b, 10);
+    strcat(b, " ");
+    itoa(cat[4], c, 16); strcat(b, c);
+    strcat(b, " ");
+    itoa(cat[3], c, 16); strcat(b, c);
+    itoa(cat[2], c, 16); strcat(b, c);
+    itoa(cat[1], c, 16); strcat(b, c);
+    itoa(cat[1], c, 16); strcat(b, c);
+    u8x8.drawString(1,5,b);
   }
+  */
   
   processCATCommand2(cat);
   insideCat = 0;

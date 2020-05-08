@@ -80,6 +80,10 @@
 #define ANALOG_SPARE (A7)
 #define OLED_ENABLE (8)
 
+// #define HAS_FACTORY_ALIGNMENT
+// This procedure adds around 646 bytes to program, and 92 bytes to global variables
+
+
 /** 
  * The Raduino board is the size of a standard 16x2 LCD panel. It has three connectors:
  * 
@@ -130,27 +134,20 @@ char c[30], b[30];
 /**
  * These are the indices where these user changable settinngs are stored  in the EEPROM
  */
-#define MASTER_CAL 0
-#define LSB_CAL 4
-#define USB_CAL 8
-#define SIDE_TONE 12
-//these are ids of the vfos as well as their offset into the eeprom storage, don't change these 'magic' values
-#define VFO_A 16
-#define VFO_B 20
-#define CW_SIDETONE 24
-#define CW_SPEED 28
-
-//These are defines for the new features back-ported from KD8CEC's software
-//these start from beyond 256 as Ian, KD8CEC has kept the first 256 bytes free for the base version
-#define VFO_A_MODE  256 // 2: LSB, 3: USB
-#define VFO_B_MODE  257
+#define MAGICNR 15     // 00          EEPROM MAGIC NUMBER
+#define MASTER_CAL 1   // 01 02 03 04 int32t
+#define USB_CAL 5      // 05 06 07 08 unsigned long
+#define CW_SIDETONE 9  // 09 10 11 12 uint16t
+#define VFO_A 13       // 13 14 15 16 unsigned long
+#define VFO_B 17       // 17 18 19 20 unsigned long
+#define CW_SPEED 21    // 21 22       int
+#define VFO_A_MODE 23  // 23          char
+#define VFO_B_MODE 24  // 24          char
+#define CW_KEY_TYPE 25 // 25          char 
 
 //values that are stroed for the VFO modes
 #define VFO_MODE_LSB 2
 #define VFO_MODE_USB 3
-
-// handkey, iambic a, iambic b : 0,1,2f
-#define CW_KEY_TYPE 358
 
 /**
  * The uBITX is an upconnversion transceiver. The first IF is at 45 MHz.
@@ -169,10 +166,8 @@ char c[30], b[30];
  * 12 MHz where its fifth harmonic beats with the arduino's 16 Mhz oscillator's fourth harmonic
  */
 
- 
-#define INIT_USB_FREQ   (11059200l)
 // limits the tuning and working range of the ubitx between 3 MHz and 30 MHz
-#define LOWEST_FREQ   (100000l)
+#define LOWEST_FREQ   (1000000l)
 #define HIGHEST_FREQ (30000000l)
 
 //we directly generate the CW by programmin the Si5351 to the cw tx frequency, hence, both are different modes
@@ -183,16 +178,18 @@ char c[30], b[30];
 char ritOn = 0;
 char vfoActive = VFO_A;
 int8_t meter_reading = -1; // was 0, a -1 on meter makes it invisible
-unsigned long vfoA=7150000L, vfoB=14200000L, sideTone=800, usbCarrier;
+unsigned long vfoA=7150000L, vfoB=14200000L, usbCarrier;
+uint16_t sideTone=800;
 char isUsbVfoA=0, isUsbVfoB=1;
 unsigned long frequency, ritRxFrequency, ritTxFrequency;  //frequency is the current frequency on the dial
 unsigned long firstIF =   45005000L;
 
 //these are variables that control the keyer behaviour
 int cwSpeed = 100; //this is actuall the dot period in milliseconds
+int cwMenuSpeed = 40; //this is actuall the dot period in milliseconds
 extern int32_t calibration;
-byte cwDelayTime = 60;
-bool Iambic_Key = true;
+int cwDelayTime = 60;
+uint8_t Iambic_Key = 1;
 #define IAMBICB 0x10 // 0 for Iambic A, 1 for Iambic B
 unsigned char keyerControl = IAMBICB;
 
@@ -200,17 +197,17 @@ unsigned char keyerControl = IAMBICB;
 /**
  * Raduino needs to keep track of current state of the transceiver. These are a few variables that do it
  */
-boolean txCAT = false;        //turned on if the transmitting due to a CAT command
+uint8_t txCAT = 0;            //turned on if the transmitting due to a CAT command
 char inTx = 0;                //it is set to 1 if in transmit mode (whatever the reason : cw, ptt or cat)
 char splitOn = 0;             //working split, uses VFO B as the transmit frequency, (NOT IMPLEMENTED YET)
 char keyDown = 0;             //in cw mode, denotes the carrier is being transmitted
 char isUSB = 0;               //upper sideband was selected, this is reset to the default for the 
                               //frequency when it crosses the frequency border of 10 MHz
-byte menuOn = 0;              //set to 1 when the menu is being displayed, if a menu item sets it to zero, the menu is exited
+byte menuState = 0;           //set to 2 when the menu is being displayed, if a menu item sets it to zero, the menu is exited
 unsigned long cwTimeout = 0;  //milliseconds to go before the cw transmit line is released and the radio goes back to rx mode
 unsigned long dbgCount = 0;   //not used now
 unsigned char txFilter = 0;   //which of the four transmit filters are in use
-boolean extendedMenu = false; //this mode of menus shows extended menus to calibrate the oscillators and choose the proper
+uint8_t extendedMenu = 0;     //this mode of menus shows extended menus to calibrate the oscillators and choose the proper
                               //beat frequency
 
 /**
@@ -228,6 +225,49 @@ void activeDelay(unsigned int delay_by){
   while (millis() - timeStart <= delay_by) {
       //Background Work      
     checkCAT();
+  }
+}
+
+void beep_dit()
+{
+  tone(CW_TONE, sideTone);
+  delay(cwMenuSpeed);
+  noTone(CW_TONE);
+  delay(cwMenuSpeed);
+}
+void beep_dah()
+{
+  tone(CW_TONE, sideTone);
+  delay(cwMenuSpeed * 3);
+  noTone(CW_TONE);
+  delay(cwMenuSpeed);
+}
+
+void beep(unsigned char sound)
+{
+  if (inTx) return;
+  switch (sound) {
+    case 0: // tick
+      tone(CW_TONE, 1600);
+      delay(50);
+      noTone(CW_TONE);
+      break;
+    case 1: // enter
+      tone(CW_TONE, 1200);
+      delay(50);
+      tone(CW_TONE, 600);
+      delay(50);
+      noTone(CW_TONE);
+      break;
+    case 2: // save
+      tone(CW_TONE, 300);
+      delay(50);
+      tone(CW_TONE, 600);
+      delay(50);
+      tone(CW_TONE, 1200);
+      delay(50);
+      noTone(CW_TONE);
+      break;
   }
 }
 
@@ -469,11 +509,11 @@ void doTuning(){
     else
       frequency -= 10000l;
 
-    if (prev_freq < 10000000l && frequency > 10000000l)
-      isUSB = true;
+    if (prev_freq < 10000000l && frequency > 10000000l) // TODO: BUG HERE ON FEQ EXACT 1000000..
+      isUSB = 1;
       
     if (prev_freq > 10000000l && frequency < 10000000l)
-      isUSB = false;
+      isUSB = 0;
 
     setFrequency(frequency);
     updateDisplay();
@@ -575,13 +615,13 @@ void initSettings(){
    x = 1; // EEPROM.get(CW_KEY_TYPE, x);
 
    if (x == 0)
-    Iambic_Key = false;
+    Iambic_Key = 0;
   else if (x == 1){
-    Iambic_Key = true;
+    Iambic_Key = 1;
     keyerControl &= ~IAMBICB;
   }
   else if (x == 2){
-    Iambic_Key = true;
+    Iambic_Key = 1;
     keyerControl |= IAMBICB;
   }
   
@@ -624,7 +664,6 @@ void setup()
 {
   Serial.begin(38400);
   Serial.flush();  
-
   
   u8x8.begin();
   u8x8.setFont(u8x8_font_amstrad_cpc_extended_f); 
@@ -632,7 +671,13 @@ void setup()
 
   //we print this line so this shows up even if the raduino 
   //crashes later in the code
-  printLine6("uBITX v5.1"); 
+  u8x8.drawString(1,6,"UBITX V5.1"); 
+  u8x8.drawString(1,7,"YL3AME"); 
+
+  beep_dah(); beep_dit(); beep_dah(); beep_dit();
+  delay(cwMenuSpeed * 2);
+  beep_dah(); beep_dah(); beep_dit(); beep_dah();
+  delay(cwMenuSpeed * 2);
   //activeDelay(500);
 
 //  initMeter(); //not used in this build
@@ -644,8 +689,10 @@ void setup()
   setFrequency(vfoA);
   updateDisplay();
 
+#ifdef HAS_FACTORY_ALIGNMENT
   if (btnDown())
     factory_alignment();
+#endif
 }
 
 
