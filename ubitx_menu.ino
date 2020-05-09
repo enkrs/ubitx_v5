@@ -550,4 +550,3 @@ void DoMenu() {
   u8x8.clear();
   UpdateDisplay();
 }
-

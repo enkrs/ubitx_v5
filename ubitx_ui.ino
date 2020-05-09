@@ -121,28 +121,28 @@ int EncRead(void) {
   unsigned long stop_by = millis() + 50;
   
   while (millis() < stop_by) { // check if the previous state was stable
-    newState = enc_state(); // Get current state  
+    new_state = enc_state(); // Get current state  
     
-    if (newState != enc_prev_state)
+    if (new_state != enc_prev_state)
       delay (1);
     
-    if (enc_state() != newState || newState == enc_prev_state)
+    if (enc_state() != new_state || new_state == enc_prev_state)
       continue; 
     //these transitions point to the encoder being rotated anti-clockwise
-    if ((enc_prev_state == 0 && newState == 2) || 
-      (enc_prev_state == 2 && newState == 3) || 
-      (enc_prev_state == 3 && newState == 1) || 
-      (enc_prev_state == 1 && newState == 0)){
+    if ((enc_prev_state == 0 && new_state == 2) || 
+      (enc_prev_state == 2 && new_state == 3) || 
+      (enc_prev_state == 3 && new_state == 1) || 
+      (enc_prev_state == 1 && new_state == 0)){
         result--;
       }
     //these transitions point o the enccoder being rotated clockwise
-    if ((enc_prev_state == 0 && newState == 1) || 
-      (enc_prev_state == 1 && newState == 3) || 
-      (enc_prev_state == 3 && newState == 2) || 
-      (enc_prev_state == 2 && newState == 0)){
+    if ((enc_prev_state == 0 && new_state == 1) || 
+      (enc_prev_state == 1 && new_state == 3) || 
+      (enc_prev_state == 3 && new_state == 2) || 
+      (enc_prev_state == 2 && new_state == 0)){
         result++;
       }
-    enc_prev_state = newState; // Record state for next pulse interpretation
+    enc_prev_state = new_state; // Record state for next pulse interpretation
     enc_speed++;
     ActiveDelay(1);
   }
