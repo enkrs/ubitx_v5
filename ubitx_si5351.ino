@@ -114,7 +114,7 @@ void si5351_set_calibration(long cal) {
     si5351bx_setfreq(0, usb_carrier);
 }
 
-void initOscillators() {
+void InitOscillators() {
   //initialize the SI5351
   si5351bx_init();
   si5351bx_vcoa = (SI5351BX_XTAL * SI5351BX_MSA) + master_cal; // apply the calibration correction factor

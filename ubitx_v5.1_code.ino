@@ -565,7 +565,8 @@ void setup() {
   if (BtnDown()) {
     MenuResetSettings(1);
   }
-  initOscillators();
+  InitEncoder();
+  InitOscillators();
 
   frequency = vfo_a;
   SetFrequency(vfo_a);
