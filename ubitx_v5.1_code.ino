@@ -562,6 +562,9 @@ void setup() {
 
   InitSettings();
   InitPorts();     
+  if (BtnDown()) {
+    MenuResetSettings(1);
+  }
   initOscillators();
 
   frequency = vfo_a;

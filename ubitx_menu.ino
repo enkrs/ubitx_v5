@@ -474,7 +474,7 @@ void menuReadADC1(int btn) {
 }
 
 extern void ResetSettings();
-void menuResetSettings(int btn) {
+void MenuResetSettings(int btn) {
   if (!btn) {
     PrintStatus("RESET");
     return;
@@ -482,7 +482,7 @@ void menuResetSettings(int btn) {
 
   ResetSettings();
   u8x8.clear();
-  PrintLine(3,"EEPROM RESET");
+  PrintLine(2,"EEPROM RESET");
   PrintLine(4,"TURN OFF POWER");
   while (1) {};
 }
@@ -537,7 +537,7 @@ void DoMenu() {
       case 10: MenuSetupCwDelay(btnState); break;
       case 11: menuSetupKeyer(btnState); break;
       case 12: menuReadADC1(btnState); break;
-      case 13: menuResetSettings(btnState); break;
+      case 13: MenuResetSettings(btnState); break;
       case 14: MenuExit(btnState);  
     }
 
