@@ -182,11 +182,11 @@ void catReadEEPRom(void)
       //5-4 :  Lock Mode (#32) 00 = Dial, 01 = Freq, 10 = Panel
       //7-6 :  Op Filter (#38) 00 = Off, 01 = SSB, 10 = CW
       //CAT_BUFF[0] = 0x08;
-      cat[0] = (sideTone - 300)/50;
+      cat[0] = (cwSideTone - 300)/50;
       cat[1] = 0x25;
       break;
     case 0x61 : //Sidetone (Volume) (#44)
-      cat[0] = sideTone % 50;
+      cat[0] = cwSideTone % 50;
       cat[1] = 0x08;
       break;
     case  0x5F : //

@@ -88,6 +88,7 @@ void updateDisplay() {
   if (frequency < 10000000l){
     u8x8.draw2x2Glyph(1, 1, b[n++]);
     u8x8.draw1x2Glyph(3, 1, '.');
+    u8x8.draw2x2Glyph(4, 1, ' '); // clear last digit in change from 10. to 9.
   } else {
     u8x8.draw2x2Glyph(1, 1, b[n++]);
     u8x8.draw2x2Glyph(3, 1, b[n++]);

@@ -53,7 +53,7 @@ byte delayBeforeCWStartTime = 50;
 char lastPaddle = 0;
 
 //reads the analog keyer pin and reports the paddle
-byte getPaddle(){
+byte getPaddle() {
   int paddle = 801; //YL3AME:analogRead(ANALOG_KEYER);
 
   if (paddle > 800)         // above 4v is up
@@ -74,9 +74,9 @@ byte getPaddle(){
  * It assumes that we have called cwTxStart and not called cwTxStop
  * each time it is called, the cwTimeOut is pushed further into the future
  */
-void cwKeydown(){
+void cwKeydown() {
   keyDown = 1;                  //tracks the CW_KEY
-  tone(CW_TONE, (int)sideTone); 
+  tone(CW_TONE, cwSideTone); 
   digitalWrite(CW_KEY, 1);     
 
   //Modified by KD8CEC, for CW Delay Time save to eeprom
@@ -88,7 +88,7 @@ void cwKeydown(){
  * Stops the cw carrier transmission along with the sidetone
  * Pushes the cwTimeout further into the future
  */
-void cwKeyUp(){
+void cwKeyUp() {
   keyDown = 0;    //tracks the CW_KEY
   noTone(CW_TONE);
   digitalWrite(CW_KEY, 0);    
@@ -126,7 +126,7 @@ uint8_t update_PaddleLatch(byte isUpdateKeyState) {
     tmpKeyerControl |= (DAH_L | DIT_L) ;     
   else 
   {
-    if (Iambic_Key)
+    if (iambicKey)
       tmpKeyerControl = 0 ;
     else if (paddle >= cwAdcSTFrom && paddle <= cwAdcSTTo)
       tmpKeyerControl = DIT_L ;
@@ -144,12 +144,12 @@ uint8_t update_PaddleLatch(byte isUpdateKeyState) {
 // New logic, by RON
 // modified by KD8CEC
 ******************************************************************************/
-void cwKeyer(void){
+void cwKeyer(void) {
   lastPaddle = 0;
   uint8_t continue_loop = 1;
   uint8_t tmpKeyControl = 0;
 
-  if( Iambic_Key ) {
+  if( iambicKey ) {
     while(continue_loop) {
       switch (keyerState) {
         case IDLE:
@@ -159,7 +159,7 @@ void cwKeyer(void){
              update_PaddleLatch(1);
              keyerState = CHK_DIT;
           }else{
-            if (0 < cwTimeout && cwTimeout < millis()){
+            if (0 < cwTimeout && cwTimeout < millis()) {
               cwTimeout = 0;
               stopTx();
             }
@@ -188,7 +188,7 @@ void cwKeyer(void){
     
         case KEYED_PREP:
           //modified KD8CEC
-          if (!inTx){
+          if (!inTx) {
             //DelayTime Option
             activeDelay(delayBeforeCWStartTime * 2);
             
@@ -232,10 +232,10 @@ void cwKeyer(void){
     } //end of while
   }
   else{
-    while(1){
+    while(1) {
       if (update_PaddleLatch(0) == DIT_L) {
         // if we are here, it is only because the key is pressed
-        if (!inTx){
+        if (!inTx) {
           //DelayTime Option
           activeDelay(delayBeforeCWStartTime * 2);
           
@@ -251,7 +251,7 @@ void cwKeyer(void){
         cwKeyUp();
       }
       else{
-        if (0 < cwTimeout && cwTimeout < millis()){
+        if (0 < cwTimeout && cwTimeout < millis()) {
           cwTimeout = 0;
           keyDown = 0;
           stopTx();

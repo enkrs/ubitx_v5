@@ -1,4 +1,4 @@
-  /**
+/**
  * This source file is under General Public License version 3.
  * 
  * This verision uses a built-in Si5351 library
@@ -80,10 +80,6 @@
 #define ANALOG_SPARE (A7)
 #define OLED_ENABLE (8)
 
-// #define HAS_FACTORY_ALIGNMENT
-// This procedure adds around 646 bytes to program, and 92 bytes to global variables
-
-
 /** 
  * The Raduino board is the size of a standard 16x2 LCD panel. It has three connectors:
  * 
@@ -134,16 +130,19 @@ char c[30], b[30];
 /**
  * These are the indices where these user changable settinngs are stored  in the EEPROM
  */
-#define MAGICNR 15     // 00          EEPROM MAGIC NUMBER
-#define MASTER_CAL 1   // 01 02 03 04 int32t
-#define USB_CAL 5      // 05 06 07 08 unsigned long
-#define CW_SIDETONE 9  // 09 10 11 12 uint16t
-#define VFO_A 13       // 13 14 15 16 unsigned long
-#define VFO_B 17       // 17 18 19 20 unsigned long
-#define CW_SPEED 21    // 21 22       int
-#define VFO_A_MODE 23  // 23          char
-#define VFO_B_MODE 24  // 24          char
-#define CW_KEY_TYPE 25 // 25          char 
+#define MAGIC_NR 0x1c    // (Magic nr value)
+#define MAGIC_ADDR 0     // 00          EEPROM MAGIC NUMBER
+#define MASTER_CAL 1     // 01 02 03 04 int32t
+#define USB_CARRIER 5    // 05 06 07 08 unsigned long
+#define CW_SIDE_TONE 9   // 09 10 11 12 uint16t
+#define VFO_A 13         // 13 14 15 16 unsigned long
+#define VFO_B 17         // 17 18 19 20 unsigned long
+#define CW_SPEED 21      // 21 22       int
+#define VFO_A_USB 23     // 23          char
+#define VFO_B_USB 24     // 24          char
+#define IAMBIC_KEY 25    // 25          char 
+#define CW_MENU_SPEED 26 // 26 27       int
+
 
 //values that are stroed for the VFO modes
 #define VFO_MODE_LSB 2
@@ -175,23 +174,26 @@ char c[30], b[30];
 #define TX_SSB 0
 #define TX_CW 1
 
+// These variables are stored in EEPROM:
+int32_t masterCal;
+unsigned long usbCarrier;
+uint16_t cwSideTone=800;
+unsigned long vfoA=7150000L;
+unsigned long vfoB=14200000L;
+int cwSpeed = 100; //this is actuall the dot period in milliseconds
+char vfoAUsb=0;
+char vfoBUsb=1;
+uint8_t iambicKey = 1;
+int cwMenuSpeed = 40;
+
 char ritOn = 0;
 char vfoActive = VFO_A;
-int8_t meter_reading = -1; // was 0, a -1 on meter makes it invisible
-unsigned long vfoA=7150000L, vfoB=14200000L, usbCarrier;
-uint16_t sideTone=800;
-char isUsbVfoA=0, isUsbVfoB=1;
 unsigned long frequency, ritRxFrequency, ritTxFrequency;  //frequency is the current frequency on the dial
 unsigned long firstIF =   45005000L;
 
-//these are variables that control the keyer behaviour
-int cwSpeed = 100; //this is actuall the dot period in milliseconds
-int cwMenuSpeed = 40; //this is actuall the dot period in milliseconds
-extern int32_t calibration;
 int cwDelayTime = 60;
-uint8_t Iambic_Key = 1;
 #define IAMBICB 0x10 // 0 for Iambic A, 1 for Iambic B
-unsigned char keyerControl = IAMBICB;
+unsigned char keyerControl;
 
 
 /**
@@ -219,55 +221,12 @@ uint8_t extendedMenu = 0;     //this mode of menus shows extended menus to calib
  * Our own delay. During any delay, the raduino should still be processing a few times. 
  */
 
-void activeDelay(unsigned int delay_by){
+void activeDelay(unsigned int delay_by) {
   unsigned long timeStart = millis();
 
   while (millis() - timeStart <= delay_by) {
       //Background Work      
     checkCAT();
-  }
-}
-
-void beep_dit()
-{
-  tone(CW_TONE, sideTone);
-  delay(cwMenuSpeed);
-  noTone(CW_TONE);
-  delay(cwMenuSpeed);
-}
-void beep_dah()
-{
-  tone(CW_TONE, sideTone);
-  delay(cwMenuSpeed * 3);
-  noTone(CW_TONE);
-  delay(cwMenuSpeed);
-}
-
-void beep(unsigned char sound)
-{
-  if (inTx) return;
-  switch (sound) {
-    case 0: // tick
-      tone(CW_TONE, 1600);
-      delay(50);
-      noTone(CW_TONE);
-      break;
-    case 1: // enter
-      tone(CW_TONE, 1200);
-      delay(50);
-      tone(CW_TONE, 600);
-      delay(50);
-      noTone(CW_TONE);
-      break;
-    case 2: // save
-      tone(CW_TONE, 300);
-      delay(50);
-      tone(CW_TONE, 600);
-      delay(50);
-      tone(CW_TONE, 1200);
-      delay(50);
-      noTone(CW_TONE);
-      break;
   }
 }
 
@@ -287,19 +246,19 @@ void beep(unsigned char sound)
  * See the circuit to understand this
  */
 
-void setTXFilters(unsigned long freq){
+void setTXFilters(unsigned long freq) {
   
-  if (freq > 21000000L){  // the default filter is with 35 MHz cut-off
+  if (freq > 21000000L) {  // the default filter is with 35 MHz cut-off
     digitalWrite(TX_LPF_A, 0);
     digitalWrite(TX_LPF_B, 0);
     digitalWrite(TX_LPF_C, 0);
   }
-  else if (freq >= 14000000L){ //thrown the KT1 relay on, the 30 MHz LPF is bypassed and the 14-18 MHz LPF is allowd to go through
+  else if (freq >= 14000000L) { //thrown the KT1 relay on, the 30 MHz LPF is bypassed and the 14-18 MHz LPF is allowd to go through
     digitalWrite(TX_LPF_A, 1);
     digitalWrite(TX_LPF_B, 0);
     digitalWrite(TX_LPF_C, 0);
   }
-  else if (freq > 7000000L){
+  else if (freq > 7000000L) {
     digitalWrite(TX_LPF_A, 0);
     digitalWrite(TX_LPF_B, 1);
     digitalWrite(TX_LPF_C, 0);    
@@ -324,7 +283,7 @@ void setTXFilters(unsigned long freq){
  * through mixing of the second local oscillator.
  */
  
-void setFrequency(unsigned long f){
+void setFrequency(unsigned long f) {
   if (f < LOWEST_FREQ)
     f = LOWEST_FREQ;
   if (f > HIGHEST_FREQ)
@@ -332,7 +291,7 @@ void setFrequency(unsigned long f){
 
   setTXFilters(f);
 
-  if (isUSB){
+  if (isUSB) {
     si5351bx_setfreq(2, firstIF + f);
     si5351bx_setfreq(1, firstIF + usbCarrier);
   }
@@ -351,11 +310,11 @@ void setFrequency(unsigned long f){
  * CW offest is calculated as lower than the operating frequency when in LSB mode, and vice versa in USB mode
  */
  
-void startTx(byte txMode){
+void startTx(byte txMode) {
   digitalWrite(TX_RX, 1);
   inTx = 1;
   
-  if (ritOn){
+  if (ritOn) {
     //save the current as the rx frequency
     ritRxFrequency = frequency;
     setFrequency(ritTxFrequency);
@@ -365,19 +324,19 @@ void startTx(byte txMode){
     if (splitOn == 1) {
       if (vfoActive == VFO_B) {
         vfoActive = VFO_A;
-        isUSB = isUsbVfoA;
+        isUSB = vfoAUsb;
         frequency = vfoA;
       }
-      else if (vfoActive == VFO_A){
+      else if (vfoActive == VFO_A) {
         vfoActive = VFO_B;
         frequency = vfoB;
-        isUSB = isUsbVfoB;        
+        isUSB = vfoBUsb;        
       }
     }
     setFrequency(frequency);
   }
 
-  if (txMode == TX_CW){
+  if (txMode == TX_CW) {
     //turn off the second local oscillator and the bfo
     si5351bx_setfreq(0, 0);
     si5351bx_setfreq(1, 0);
@@ -386,14 +345,14 @@ void startTx(byte txMode){
     //the key up and key down will toggle the carrier unbalancing
     //the exact cw frequency is the tuned frequency + sidetone
     if (isUSB)
-      si5351bx_setfreq(2, frequency + sideTone);
+      si5351bx_setfreq(2, frequency + cwSideTone);
     else
-      si5351bx_setfreq(2, frequency - sideTone); 
+      si5351bx_setfreq(2, frequency - cwSideTone); 
   }
   updateDisplay();
 }
 
-void stopTx(){
+void stopTx() {
   inTx = 0;
 
   digitalWrite(TX_RX, 0);           //turn off the tx
@@ -404,15 +363,15 @@ void stopTx(){
   else{
     if (splitOn == 1) {
       //vfo Change
-      if (vfoActive == VFO_B){
+      if (vfoActive == VFO_B) {
         vfoActive = VFO_A;
         frequency = vfoA;
-        isUSB = isUsbVfoA;        
+        isUSB = vfoAUsb;        
       }
-      else if (vfoActive == VFO_A){
+      else if (vfoActive == VFO_A) {
         vfoActive = VFO_B;
         frequency = vfoB;
-        isUSB = isUsbVfoB;        
+        isUSB = vfoBUsb;        
       }
     }
     setFrequency(frequency);
@@ -424,7 +383,7 @@ void stopTx(){
  * ritEnable is called with a frequency parameter that determines
  * what the tx frequency will be
  */
-void ritEnable(unsigned long f){
+void ritEnable(unsigned long f) {
   ritOn = 1;
   //save the non-rit frequency back into the VFO memory
   //as RIT is a temporary shift, this is not saved to EEPROM
@@ -432,8 +391,8 @@ void ritEnable(unsigned long f){
 }
 
 // this is called by the RIT menu routine
-void ritDisable(){
-  if (ritOn){
+void ritDisable() {
+  if (ritOn) {
     ritOn = 0;
     setFrequency(ritTxFrequency);
     updateDisplay();
@@ -450,12 +409,12 @@ void ritDisable(){
  * flip the T/R line to T and update the display to denote transmission
  */
 
-void checkPTT(){	
+void checkPTT() {	
   //we don't check for ptt when transmitting cw
   if (cwTimeout > 0)
     return;
     
-  if (digitalRead(PTT) == 0 && inTx == 0){
+  if (digitalRead(PTT) == 0 && inTx == 0) {
     startTx(TX_SSB);
     activeDelay(50); //debounce the PTT
   }
@@ -464,7 +423,7 @@ void checkPTT(){
     stopTx();
 }
 
-void checkButton(){
+void checkButton() {
   //only if the button is pressed
   if (!btnDown())
     return;
@@ -488,12 +447,12 @@ void checkButton(){
  */
 
 
-void doTuning(){
+void doTuning() {
   int s;
   unsigned long prev_freq;
 
   s = enc_read();
-  if (s != 0){
+  if (s != 0) {
     prev_freq = frequency;
 
     if (s > 4)
@@ -523,7 +482,7 @@ void doTuning(){
 /**
  * RIT only steps back and forth by 100 hz at a time
  */
-void doRIT(){
+void doRIT() {
   int knob = enc_read();
   unsigned long old_freq = frequency;
 
@@ -532,10 +491,39 @@ void doRIT(){
   else if (knob > 0)
     frequency += 100;
  
-  if (old_freq != frequency){
+  if (old_freq != frequency) {
     setFrequency(frequency);
     updateDisplay();
   }
+}
+
+
+
+void resetSettings() {
+  masterCal = 154117;
+  usbCarrier = 11056273l;
+  cwSideTone = 800;
+  vfoA = 3573000l;
+  vfoB = 7074000l;
+  cwSpeed = 100;
+  vfoAUsb = 1;
+  vfoBUsb = 1;
+  iambicKey = 1;
+  cwMenuSpeed = 40;
+
+  EEPROM.put(MASTER_CAL, masterCal);
+  EEPROM.put(USB_CARRIER, usbCarrier);
+  EEPROM.put(CW_SIDE_TONE, cwSideTone);
+  EEPROM.put(VFO_A, vfoA);
+  EEPROM.put(VFO_B, vfoB);
+  EEPROM.put(CW_SPEED, cwSpeed);
+  EEPROM.put(VFO_A_USB, vfoAUsb);
+  EEPROM.put(VFO_B_USB, vfoBUsb);
+  EEPROM.put(IAMBIC_KEY, iambicKey);
+  EEPROM.put(CW_MENU_SPEED, cwMenuSpeed);
+
+  unsigned char magicNr = MAGIC_NR;
+  EEPROM.put(MAGIC_ADDR, magicNr);
 }
 
 /**
@@ -543,91 +531,36 @@ void doRIT(){
  * present or out of range, in this case, some intelligent defaults are copied into the 
  * variables.
  */
-void initSettings(){
-  byte x;
-  //read the settings from the eeprom and restore them
-  //if the readings are off, then set defaults
-  calibration = 154117; // EEPROM.get(MASTER_CAL, calibration);
-  usbCarrier = 11056273l; // EEPROM.get(USB_CAL, usbCarrier);
-  vfoA = 3573000l; // EEPROM.get(VFO_A, vfoA);
-  vfoB = 7074000l; // EEPROM.get(VFO_B, vfoB);
-  sideTone = 800; // EEPROM.get(CW_SIDETONE, sideTone);
-  cwSpeed = 100; // EEPROM.get(CW_SPEED, cwSpeed);
-  
-  
-  if (usbCarrier > 11060000l || usbCarrier < 11048000l)
-    usbCarrier = 11052000l;
-  if (vfoA > 35000000l || 3500000l > vfoA)
-     vfoA = 7150000l;
-  if (vfoB > 35000000l || 3500000l > vfoB)
-     vfoB = 14150000l;  
-  if (sideTone < 100 || 2000 < sideTone) 
-    sideTone = 800;
-  if (cwSpeed < 10 || 1000 < cwSpeed) 
-    cwSpeed = 100;
+void initSettings() {
+  unsigned char magicNr;
 
-  /*
-   * The VFO modes are read in as either 2 (USB) or 3(LSB), 0, the default
-   * is taken as 'uninitialized
-   */
-
-  isUsbVfoA = 1;// EEPROM.get(VFO_A_MODE, x);
- 
-  /*
-  switch(x){
-    case VFO_MODE_USB:
-      isUsbVfoA = 1;
-      break;
-    case VFO_MODE_LSB:
-      isUsbVfoA = 0;
-      break;
-    default:
-      if (vfoA > 10000000l)
-        isUsbVfoA = 1;
-      else 
-        isUsbVfoA = 0;      
+  EEPROM.get(MAGIC_ADDR, magicNr);
+  if (magicNr != MAGIC_NR) {
+    resetSettings();
+    u8x8.draw1x2String(1,6,"EEPROM RESET   ");
+  } else {
+    EEPROM.get(MASTER_CAL, masterCal);
+    EEPROM.get(USB_CARRIER, usbCarrier);
+    EEPROM.get(CW_SIDE_TONE, cwSideTone);
+    EEPROM.get(VFO_A, vfoA);
+    EEPROM.get(VFO_B, vfoB);
+    EEPROM.get(CW_SPEED, cwSpeed);
+    EEPROM.get(VFO_A_USB, vfoAUsb);
+    EEPROM.get(VFO_B_USB, vfoBUsb);
+    EEPROM.get(IAMBIC_KEY, iambicKey);
+    EEPROM.get(CW_MENU_SPEED, cwMenuSpeed);
   }
-  */
 
-  isUsbVfoB = 1; // EEPROM.get(VFO_B_MODE, x);
-  /*
-  switch(x){
-    case VFO_MODE_USB:
-      isUsbVfoB = 1;
-      break;
-    case VFO_MODE_LSB:
-      isUsbVfoB = 0;
-      break;
-    default:
-      if (vfoA > 10000000l)
-        isUsbVfoB = 1;
-      else 
-        isUsbVfoB = 0;      
-  }
-  */
+  // calculate internal variables
+  isUSB = vfoAUsb;
 
-  //set the current mode
-  isUSB = isUsbVfoA;
-
-  /*
-   * The keyer type splits into two variables
-   */
-   x = 1; // EEPROM.get(CW_KEY_TYPE, x);
-
-   if (x == 0)
-    Iambic_Key = 0;
-  else if (x == 1){
-    Iambic_Key = 1;
-    keyerControl &= ~IAMBICB;
-  }
-  else if (x == 2){
-    Iambic_Key = 1;
-    keyerControl |= IAMBICB;
-  }
-  
+   if (iambicKey == 1)
+     keyerControl &= ~IAMBICB;
+   else if (iambicKey == 2)
+     keyerControl |= IAMBICB;
 }
 
-void initPorts(){
+void initPorts() {
 
   analogReference(DEFAULT);
 
@@ -666,19 +599,15 @@ void setup()
   Serial.flush();  
   
   u8x8.begin();
-  u8x8.setFont(u8x8_font_amstrad_cpc_extended_f); 
+  // the "_f" version uses extra 1280 bytes of storage space
+  // u8x8.setFont(u8x8_font_amstrad_cpc_extended_f); 
+  u8x8.setFont(u8x8_font_amstrad_cpc_extended_u); 
   u8x8.setPowerSave(0);
 
   //we print this line so this shows up even if the raduino 
   //crashes later in the code
   u8x8.drawString(1,6,"UBITX V5.1"); 
   u8x8.drawString(1,7,"YL3AME"); 
-
-  beep_dah(); beep_dit(); beep_dah(); beep_dit();
-  delay(cwMenuSpeed * 2);
-  beep_dah(); beep_dah(); beep_dit(); beep_dah();
-  delay(cwMenuSpeed * 2);
-  //activeDelay(500);
 
 //  initMeter(); //not used in this build
   initSettings();
@@ -688,11 +617,6 @@ void setup()
   frequency = vfoA;
   setFrequency(vfoA);
   updateDisplay();
-
-#ifdef HAS_FACTORY_ALIGNMENT
-  if (btnDown())
-    factory_alignment();
-#endif
 }
 
 
@@ -700,7 +624,7 @@ void setup()
  * The loop checks for keydown, ptt, function button and tuning.
  */
 
-void loop(){ 
+void loop() { 
   
   cwKeyer(); 
   if (!txCAT)
@@ -708,7 +632,7 @@ void loop(){
   checkButton();
 
   //tune only when not tranmsitting 
-  if (!inTx){
+  if (!inTx) {
     if (ritOn)
       doRIT();
     else 

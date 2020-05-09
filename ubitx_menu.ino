@@ -26,7 +26,6 @@ int getValueByKnob(int minimum, int maximum, int step_size,  int initial, const 
 
   u8x8.clear();
   u8x8.draw1x2String(1,1,title);
-  beep(1);
 
   // 0123456789012345
   //           XX  **
@@ -74,17 +73,11 @@ static const char* STR_MENU_CW = "MENU CW";
 void menuBand(int btn) {
   int knob = 0;
 
-  if (!btn){
+  if (!btn) {
     printLine6value(STR_BAND_SELECT,"..");
-    if (menuState == 0) { // OK
-        beep_dah(); beep_dah(); beep_dah();
-        delay(cwMenuSpeed * 2);
-        beep_dah(); beep_dit(); beep_dah();
-    }
     return;
   }
 
-  beep(1);
   printLine6(STR_BAND_SELECT);
   ritDisable();
 
@@ -106,16 +99,9 @@ void menuBand(int btn) {
 }
 
 // Menu #2
-void menuRitToggle(int btn){
+void menuRitToggle(int btn) {
   if (!btn) {
     printLine6value("RIT", ritOn ? STR_ON : STR_OFF);
-
-    if (menuState == 0 && ritOn) { // Y
-        beep_dah(); beep_dit(); beep_dah(); beep_dah();
-    }
-    if (menuState == 0 && !ritOn) { // N
-        beep_dah(); beep_dit();
-    }
     return;
   }
 
@@ -130,38 +116,37 @@ void menuRitToggle(int btn){
 
 //Menu #3
 void menuVfoToggle(int btn) {
-  if (!btn){
+  if (!btn) {
     printLine6value("VFO", vfoActive == VFO_A ? "A" : "B");
-
-    if (menuState == 0 && vfoActive == VFO_A) { // A
-        beep_dit(); beep_dah();
-    }
-    if (menuState == 0 && vfoActive == VFO_B) { // B
-        beep_dah(); beep_dit(); beep_dit(); beep_dit();
-    }
     return;
   }
 
   if (vfoActive == VFO_B) {
-    vfoB = frequency;
-    isUsbVfoB = isUSB;
-    EEPROM.put(VFO_B, frequency);
-    EEPROM.put(VFO_B_MODE,
-      isUsbVfoB ? VFO_MODE_USB : VFO_MODE_LSB);
+    if (vfoB != frequency) {
+      vfoB = frequency;
+      EEPROM.put(VFO_B, vfoB);
+    }
+    if (vfoBUsb != isUSB) {
+      vfoBUsb = isUSB;
+      EEPROM.put(VFO_B_USB, vfoBUsb);
+    }
 
     vfoActive = VFO_A;
     frequency = vfoA;
-    isUSB = isUsbVfoA;
+    isUSB = vfoAUsb;
   } else {
-    vfoA = frequency;
-    isUsbVfoA = isUSB;
-    EEPROM.put(VFO_A, frequency);
-    EEPROM.put(VFO_A_MODE,
-      isUsbVfoA ? VFO_MODE_USB : VFO_MODE_LSB);
+    if (vfoA != frequency) {
+      vfoA = frequency;
+      EEPROM.put(VFO_A, vfoA);
+    }
+    if (vfoAUsb != isUSB) {
+      vfoAUsb = isUSB;
+      EEPROM.put(VFO_A_USB, vfoAUsb);
+    }
 
     vfoActive = VFO_B;
     frequency = vfoB;
-    isUSB = isUsbVfoB;
+    isUSB = vfoBUsb;
   }
   ritDisable();
   setFrequency(frequency);
@@ -170,15 +155,9 @@ void menuVfoToggle(int btn) {
 }
 
 // Menu #4
-void menuSidebandToggle(int btn){
-  if (!btn){
+void menuSidebandToggle(int btn) {
+  if (!btn) {
     printLine6value("MODE", isUSB ? "USB" : "LSB");
-    if (menuState == 0 && isUSB) { // U
-        beep_dit(); beep_dit(); beep_dah();
-    }
-    if (menuState == 0 && !isUSB) { // L
-        beep_dit(); beep_dah(); beep_dit(); beep_dit(); 
-    }
     return;
   }
 
@@ -189,24 +168,18 @@ void menuSidebandToggle(int btn){
 
   //Added by KD8CEC
   if (vfoActive == VFO_B)
-    isUsbVfoB = isUSB;
+    vfoBUsb = isUSB;
   else
-    isUsbVfoB = isUSB;
+    vfoBUsb = isUSB;
 
   menuState = 1;
 }
 
 //Split communication using VFOA and VFOB by KD8CEC
 //Menu #5
-void menuSplitToggle(int btn){
+void menuSplitToggle(int btn) {
   if (!btn) {
     printLine6value("SPLIT", splitOn ? STR_ON : STR_OFF);
-    if (menuState == 0 && splitOn) { // ON
-        beep_dah(); beep_dit(); beep_dah(); beep_dah();
-    }
-    if (menuState == 0 && !splitOn) { // OFF
-        beep_dah(); beep_dit();
-    }
     return;
   }
 
@@ -220,29 +193,28 @@ void menuSplitToggle(int btn){
   menuState = 1;
 }
 
-void menuCWSpeed(int btn){
-    int wpm;
+void menuCWSpeed(int btn) {
+   int wpm;
 
-    wpm = 1200 / cwSpeed;
+   wpm = 1200 / cwSpeed;
      
-    if (!btn) {
+   if (!btn) {
      itoa(wpm, b, 10);
      strcat(b, " ");
      strcat(b, STR_WPM);
      printLine6value("CW", b);
      return;
-    }
+   }
 
-    wpm = getValueByKnob(1, 100, 1,  wpm, "CW SPEED", STR_WPM);
-    cwSpeed = 1200 / wpm;
-    EEPROM.put(CW_SPEED, cwSpeed);
+   wpm = getValueByKnob(1, 100, 1,  wpm, "CW SPEED", STR_WPM);
+   cwSpeed = 1200 / wpm;
+   EEPROM.put(CW_SPEED, cwSpeed);
 
-    menuState = 1;
+   menuState = 1;
 }
 
-void menuExit(int btn){
-
-  if (!btn){
+void menuExit(int btn) {
+  if (!btn) {
     printLine6("EXIT MENU");
     return;
   }
@@ -254,13 +226,11 @@ void menuExit(int btn){
  * The calibration routines are not normally shown in the menu as they are rarely used
  * They can be enabled by choosing this menu option
  */
-int menuSetup(int btn){
-  if (!btn){
+int menuSetup(int btn) {
+  if (!btn) {
     printLine6value("ADVANCED", extendedMenu ? STR_ON : "..");
     return 0;
   }
-
-  beep(1);
 
   if (!extendedMenu) {
     extendedMenu = 1;
@@ -273,27 +243,27 @@ int menuSetup(int btn){
 
  //this is used by the si5351 routines in the ubitx_5351 file
 /*
-extern int32_t calibration;
+extern int32_t masterCal;
 extern uint32_t si5351bx_vcoa;
 
-void calibrateClock(){
+void calibrateClock() {
   int knob = 0;
 
   digitalWrite(TX_LPF_A, 0);
   digitalWrite(TX_LPF_B, 0);
   digitalWrite(TX_LPF_C, 0);
 
-  calibration = 0;
+  masterCal = 0;
 
   isUSB = 1;
 
   //turn off the second local oscillator and the bfo
-  si5351_set_calibration(calibration);
+  si5351_set_calibration(masterCal);
   startTx(TX_CW);
   si5351bx_setfreq(2, 10000000l); 
   
   strcpy(b, "#1 10 MHz cal:");
-  ltoa(calibration/8750, c, 10);
+  ltoa(masterCal/8750, c, 10);
   strcat(b, c);
   printLine6(b);     
 
@@ -306,16 +276,16 @@ void calibrateClock(){
     knob = enc_read();
 
     if (knob > 0)
-      calibration += 875;
+      masterCal += 875;
     else if (knob < 0)
-      calibration -= 875;
+      masterCal -= 875;
     else 
       continue; //don't update the frequency or the display
       
-    si5351_set_calibration(calibration);
+    si5351_set_calibration(masterCal);
     si5351bx_setfreq(2, 10000000l);
     //strcpy(b, "#1 10 MHz cal:");
-    ltoa(calibration/8750, c, 10);
+    ltoa(masterCal/8750, c, 10);
     strcat(b, c);
     printLine6(b);     
   }
@@ -325,14 +295,14 @@ void calibrateClock(){
   keyDown = 0;
   stopTx();
 
-  EEPROM.put(MASTER_CAL, calibration);
+  EEPROM.put(MASTER_CAL, masterCal);
   initOscillators();
   setFrequency(frequency);    
 }
 */
 
-void menuSetupCalibration(int btn){
-  if (!btn){
+void menuSetupCalibration(int btn) {
+  if (!btn) {
     printLine6("CALIBRATE");
     return;
   }
@@ -340,10 +310,10 @@ void menuSetupCalibration(int btn){
   u8x8.clear();
   u8x8.draw1x2String(1,4,"NOT IMPLEMENTED");
   activeDelay(2000);
-  calibrateClock();
+  //calibrateClock();
 }
 
-void printCarrierFreq(unsigned long freq){
+void printCarrierFreq(unsigned long freq) {
 
   memset(c, 0, sizeof(c));
   memset(b, 0, sizeof(b));
@@ -358,43 +328,42 @@ void printCarrierFreq(unsigned long freq){
   printLine6(c);    
 }
 
-void menuSetupCarrier(int btn){
+void menuSetupCarrier(int btn) {
   int knob = 0;
    
-  if (!btn){
+  if (!btn) {
     printLine6("CAL BFO");
     return;
   }
 
-  //printLine1("Tune to best Signal");  
-  //printLine6("Press to confirm. ");
-  activeDelay(1000);
-
-  usbCarrier = 11053000l;
+  // usbCarrier = 11053000l;
   si5351bx_setfreq(0, usbCarrier);
-  printCarrierFreq(usbCarrier);
+  u8x8.clear();
+  u8x8.draw1x2String(1,1,"CALIBRATE BFO");
+  screenDirty = 1;
 
-  //disable all clock 1 and clock 2 
-  while (!btnDown()){
+  while (!btnDown()) {
     knob = enc_read();
 
-    if (knob > 0)
-      usbCarrier -= 50;
-    else if (knob < 0)
-      usbCarrier += 50;
-    else
-      continue; //don't update the frequency or the display
+    if (knob != 0) {
+      usbCarrier += knob;
+      if (usbCarrier < 11000000) usbCarrier = 11000000;
+      if (usbCarrier > 11099999) usbCarrier = 11099999;
       
-    si5351bx_setfreq(0, usbCarrier);
-    printCarrierFreq(usbCarrier);
-    
-    activeDelay(100);
+      si5351bx_setfreq(0, usbCarrier);
+      setFrequency(frequency); // This was not in original. Why?
+      screenDirty = 1;
+    }
+    if (screenDirty) {
+      ultoa(usbCarrier, c, DEC);
+      printLine(4, c);
+    }
+    checkCAT();
   }
   btnWaitUp();
+  u8x8.clear();
 
-  //printLine6("Carrier set!    ");
-  EEPROM.put(USB_CAL, usbCarrier);
-  activeDelay(1000);
+  EEPROM.put(USB_CARRIER, usbCarrier);
   
   si5351bx_setfreq(0, usbCarrier);          
   setFrequency(frequency);    
@@ -402,29 +371,29 @@ void menuSetupCarrier(int btn){
   menuState = 1; 
 }
 
-void menuSetupCwTone(int btn){
+void menuSetupCwTone(int btn) {
   int knob = 0;
      
   if (!btn) {
-    itoa(sideTone, b, 10);
+    itoa(cwSideTone, b, 10);
     strcat(b, " HZ");
     printLine6value("CW TONE", b);
     return;
   }
 
-  tone(CW_TONE, sideTone);
+  tone(CW_TONE, cwSideTone);
   while (!btnDown()) {
     knob = enc_read();
 
-    if (knob > 0 && sideTone < 2000)
-      sideTone += 10;
-    else if (knob < 0 && sideTone > 100 )
-      sideTone -= 10;
+    if (knob > 0 && cwSideTone < 2000)
+      cwSideTone += 10;
+    else if (knob < 0 && cwSideTone > 100 )
+      cwSideTone -= 10;
     else
       continue; //don't update the frequency or the display
         
-    tone(CW_TONE, sideTone);
-    itoa(sideTone, b, 10);
+    tone(CW_TONE, cwSideTone);
+    itoa(cwSideTone, b, 10);
     printLine6(b);
 
     activeDelay(20);
@@ -432,12 +401,12 @@ void menuSetupCwTone(int btn){
   btnWaitUp();
   noTone(CW_TONE);
   //save the setting
-  EEPROM.put(CW_SIDETONE, sideTone);
+  EEPROM.put(CW_SIDE_TONE, cwSideTone);
     
   menuState = 1; 
 }
 
-void menuSetupCwDelay(int btn){
+void menuSetupCwDelay(int btn) {
   if (!btn) {
     itoa(cwDelayTime, b, 10);
     strcat(b, " MS");
@@ -450,7 +419,7 @@ void menuSetupCwDelay(int btn){
   menuState = 1;
 }
 
-void menuCWMenuSpeed(int btn){
+void menuCWMenuSpeed(int btn) {
     int wpm;
 
     wpm = 1200 / cwMenuSpeed;
@@ -465,29 +434,33 @@ void menuCWMenuSpeed(int btn){
 
     wpm = getValueByKnob(1, 100, 1,  wpm, STR_MENU_CW, STR_WPM);
     cwMenuSpeed = 1200 / wpm;
-    //EEPROM.put(CW_SPEED, cwMenuSpeed);
+    EEPROM.put(CW_MENU_SPEED, cwMenuSpeed);
 
     menuState = 1;
 }
 
 
-void menuSetupKeyer(int btn){
-  int tmp_key, knob;
-  
+void menuSetupKeyer(int btn) {
   const char* title = "13 CW TYPE";
-  if (!btn){
-    if (!Iambic_Key)
-      printLine6value(title, "STR");
-    else if (keyerControl & IAMBICB)
-      printLine6value(title, "IAMB-A");
-    else 
-      printLine6value(title, "IAMB-B");
+  if (!btn) {
+    switch(iambicKey) {
+      case 0:
+        printLine6value(title, "STR");
+      break;
+      case 1:
+        printLine6value(title, "IAMB-A");
+      break;
+      case 2:
+        printLine6value(title, "IAMB-B");
+      break;
+    }
     return;
   }
   
   activeDelay(500);
 
-  if (!Iambic_Key)
+  /* TODO: implement
+  if (!iambicKey)
     tmp_key = 0; //hand key
   else if (keyerControl & IAMBICB)
     tmp_key = 2; //Iambic B
@@ -515,22 +488,23 @@ void menuSetupKeyer(int btn){
 
   activeDelay(500);
   if (tmp_key == 0)
-    Iambic_Key = 0;
-  else if (tmp_key == 1){
-    Iambic_Key = 1;
+    iambicKey = 0;
+  else if (tmp_key == 1) {
+    iambicKey = 1;
     keyerControl &= ~IAMBICB;
   }
-  else if (tmp_key == 2){
-    Iambic_Key = 1;
+  else if (tmp_key == 2) {
+    iambicKey = 1;
     keyerControl |= IAMBICB;
   }
   
   EEPROM.put(CW_KEY_TYPE, tmp_key);
+  */
   
   menuState = 1;  
 }
 
-void menuReadADC1(int btn){
+void menuReadADC1(int btn) {
   int adc;
   
   if (!btn) {
@@ -543,7 +517,21 @@ void menuReadADC1(int btn){
   menuState = 1;
 }
 
-void doMenu(){
+extern void resetSettings();
+void menuResetSettings(int btn) {
+  if (!btn) {
+    printLine6("RESET");
+    return;
+  }
+
+  resetSettings();
+  u8x8.clear();
+  printLine(3,"EEPROM RESET");
+  printLine(4,"TURN OFF POWER");
+  while (1) {};
+}
+
+void doMenu() {
   int select = 0, active = -1, btnState;
 
   btnWaitUp();
@@ -556,8 +544,8 @@ void doMenu(){
       btnWaitUp();
 
     select += enc_read();
-    if (extendedMenu && select > 149)
-      select = 149;
+    if (extendedMenu && select > 159)
+      select = 159;
     if (!extendedMenu && select > 79)
       select = 79;
     if (select < 0)
@@ -571,7 +559,6 @@ void doMenu(){
 
     if (select / 10 != active) {
       active = select / 10;
-      beep(0);
     }
 
     switch (active) {
@@ -596,7 +583,8 @@ void doMenu(){
       case 11: menuCWMenuSpeed(btnState); break;
       case 12: menuSetupKeyer(btnState); break;
       case 13: menuReadADC1(btnState); break;
-      case 14: menuExit(btnState);  
+      case 14: menuResetSettings(btnState); break;
+      case 15: menuExit(btnState);  
     }
 
     if (menuState == 0) { // leaving
