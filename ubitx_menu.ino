@@ -15,8 +15,8 @@ char screen_dirty; // Used across functions to signal redrawing
 char extended_menu = 0;     //this mode of menus shows extended menus to calibrate the oscillators and choose the proper
 
 // A generic control to read variable values
-int GetValueByKnob(int minimum, int maximum, int step_size,  int initial, const char* title, const char *postfix)
-{
+int GetValueByKnob(int minimum, int maximum, int step_size,  int initial,
+                   const char* title, const char *postfix) {
   int knob = 0;
   int knob_value;
 
@@ -215,8 +215,8 @@ void MenuExit(int btn) {
 }
 
 /**
- * The calibration routines are not normally shown in the menu as they are rarely used
- * They can be enabled by choosing this menu option
+ * The calibration routines are not normally shown in the menu as they are
+ * rarely used. They can be enabled by choosing this menu option.
  */
 int MenuSetup(int btn) {
   if (!btn) {
@@ -232,66 +232,6 @@ int MenuSetup(int btn) {
   menu_state = 1;
   return 0;
 }
-
- //this is used by the si5351 routines in the ubitx_5351 file
-/*
-extern long master_cal;
-extern unsigned long si5351bx_vcoa;
-
-void calibrateClock() {
-  int knob = 0;
-
-  digitalWrite(TX_LPF_A, 0);
-  digitalWrite(TX_LPF_B, 0);
-  digitalWrite(TX_LPF_C, 0);
-
-  master_cal = 0;
-
-  is_usb = 1;
-
-  //turn off the second local oscillator and the bfo
-  si5351_set_calibration(master_cal);
-  StartTx(TX_CW);
-  si5351bx_setfreq(2, 10000000l); 
-  
-  strcpy(b, "#1 10 MHz cal:");
-  ltoa(master_cal/8750, c, 10);
-  strcat(b, c);
-  PrintStatus(b);     
-
-  while (!BtnDown()) {
-    if (digitalRead(PTT) == LOW && !key_down)
-      CwKeydown();
-    if (digitalRead(PTT)  == HIGH && key_down)
-      cwKeyUp();
-      
-    knob = EncRead();
-
-    if (knob > 0)
-      master_cal += 875;
-    else if (knob < 0)
-      master_cal -= 875;
-    else 
-      continue; //don't update the frequency or the display
-      
-    si5351_set_calibration(master_cal);
-    si5351bx_setfreq(2, 10000000l);
-    //strcpy(b, "#1 10 MHz cal:");
-    ltoa(master_cal/8750, c, 10);
-    strcat(b, c);
-    PrintStatus(b);     
-  }
-  BtnWaitUp();
-
-  cw_timeout = 0;
-  key_down = 0;
-  StopTx();
-
-  EEPROM.put(MASTER_CAL, master_cal);
-  initOscillators();
-  SetFrequency(frequency);    
-}
-*/
 
 void MenuSetupCalibration(int btn) {
   if (!btn) {
@@ -396,7 +336,7 @@ void MenuSetupCwDelay(int btn) {
   menu_state = 1;
 }
 
-void menuSetupKeyer(int btn) {
+void MenuSetupKeyer(int btn) {
   const char* title = "CW TYPE";
   if (!btn) {
     switch(iambic_key) {
@@ -460,7 +400,7 @@ void menuSetupKeyer(int btn) {
   menu_state = 1;  
 }
 
-void menuReadADC1(int btn) {
+void MenuReadADC1(int btn) {
   int adc;
   
   if (!btn) {
@@ -535,8 +475,8 @@ void DoMenu() {
       case 8: MenuSetupCarrier(btnState); break;
       case 9: MenuSetupCwTone(btnState); break;
       case 10: MenuSetupCwDelay(btnState); break;
-      case 11: menuSetupKeyer(btnState); break;
-      case 12: menuReadADC1(btnState); break;
+      case 11: MenuSetupKeyer(btnState); break;
+      case 12: MenuReadADC1(btnState); break;
       case 13: MenuResetSettings(btnState); break;
       case 14: MenuExit(btnState);  
     }
