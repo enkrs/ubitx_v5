@@ -11,29 +11,22 @@
  *  - If the menu item is NOT clicked on, then the menu's prompt is to be displayed
  */
 
-uint8_t screen_dirty; // Used across functions to signal redrawing
-uint8_t extended_menu = 0;     //this mode of menus shows extended menus to calibrate the oscillators and choose the proper
+char screen_dirty; // Used across functions to signal redrawing
+char extended_menu = 0;     //this mode of menus shows extended menus to calibrate the oscillators and choose the proper
 
-
-/** A generic control to read variable values
-*/
+// A generic control to read variable values
 int GetValueByKnob(int minimum, int maximum, int step_size,  int initial, const char* title, const char *postfix)
 {
   int knob = 0;
   int knob_value;
-  screen_dirty = 1;
 
   knob_value = initial;
 
   u8x8.clear();
   u8x8.draw1x2String(1,1,title);
+  screen_dirty = 1;
 
-  // 0123456789012345
-  //           XX  **
-  //             **
-  //           **
-  //         
-  int8_t right = 16 - strlen(postfix) * 2;
+  signed char right = 16 - strlen(postfix) * 2;
   u8x8.draw2x2String(right, 4, postfix);
    
   while(!BtnDown()) {
@@ -242,8 +235,8 @@ int MenuSetup(int btn) {
 
  //this is used by the si5351 routines in the ubitx_5351 file
 /*
-extern int32_t master_cal;
-extern uint32_t si5351bx_vcoa;
+extern long master_cal;
+extern unsigned long si5351bx_vcoa;
 
 void calibrateClock() {
   int knob = 0;
@@ -520,9 +513,8 @@ void DoMenu() {
       u8x8.setInverseFont(1);
     }
 
-    if (select / 10 != active) {
+    if (select / 10 != active)
       active = select / 10;
-    }
 
     switch (active) {
       case 0: MenuBand(btnState); break;
@@ -552,9 +544,9 @@ void DoMenu() {
     if (menu_state == 0) { // leaving
       u8x8.setInverseFont(0);
       ActiveDelay(250);
+      BtnWaitUp();
     }
   }
-  BtnWaitUp();
   u8x8.clear();
   UpdateDisplay();
 }

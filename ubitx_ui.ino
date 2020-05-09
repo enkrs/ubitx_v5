@@ -1,37 +1,26 @@
 /**
  * The user interface of the ubitx consists of the encoder, the push-button on top of it
- * and the 16x2 LCD display.
- * The upper line of the display is constantly used to display frequency and status
- * of the radio. Occasionally, it is used to provide a two-line information that is 
- * quickly cleared up.
- *   0123456789012345             0123456789012345
- *  0X          USB A            0X          USB A
- *  1X6".       """""            1X6".       """""
- *  2X"""                        2X"""            
- *  3X 1"2"3".4"5"6"             3X 1"2"3".4"5"6" 
- *  4X """""""""""""             4X """"""""""""" 
- *  5X                           5X               
- *  6XBAND SELECT  >"            6XCW SPEED      "
- *  7X"""" """"""                7X"""" """"""    
+ * ....
  */
 
 
+
 //returns 1 if the button is pressed
-uint8_t BtnDown(){
+char BtnDown() {
   if (digitalRead(FBUTTON) == HIGH)
     return 0;
   else
     return 1;
 }
 
-void BtnWaitUp(){
+void BtnWaitUp() {
   while (digitalRead(FBUTTON) == LOW)
     ActiveDelay(50);
   ActiveDelay(50);
 }
 
 // The generic routine to display one line on the LCD 
-void PrintLine(unsigned char linenmbr, const char *c) {
+void PrintLine(char linenmbr, const char *c) {
   if (c[0] == 0) {
     u8x8.clearLine(linenmbr);
     u8x8.clearLine(linenmbr + 1);
@@ -40,7 +29,7 @@ void PrintLine(unsigned char linenmbr, const char *c) {
 
   u8x8.draw1x2String(1, linenmbr, c);
 
-  for (byte i = strlen(c); i < 15; i++) { // add white spaces until the end of the 16 characters line is reached
+  for (unsigned char i = strlen(c); i < 15; i++) { // add white spaces until the end of the 16 characters line is reached
     u8x8.draw1x2Glyph(i + 1, linenmbr, ' ');
   }
 }
@@ -55,7 +44,7 @@ void PrintStatusValue(const char *c, const char *v) {
   u8x8.draw1x2String(15 - strlen(v) + 1, 6, v);
   // 0123456789012345
   // X[-5-]xxxx[-6--]
-  for (byte i = strlen(c) + 1; i <= 15 - strlen(v); i++) { // add white spaces until the end of the 16 characters line is reached
+  for (unsigned char i = strlen(c) + 1; i <= 15 - strlen(v); i++) { // add white spaces until the end of the 16 characters line is reached
     u8x8.draw1x2Glyph(i, 6, ' ');
   }
 }
@@ -81,7 +70,7 @@ void UpdateDisplay() {
 
   //one mhz digit if less than 10 M, two digits if more
   unsigned char n = 0;
-  if (frequency < 10000000l){
+  if (frequency < 10000000l) {
     u8x8.draw2x2Glyph(1, 1, b[n++]);
     u8x8.draw1x2Glyph(3, 1, '.');
     u8x8.draw2x2Glyph(4, 1, ' '); // clear last digit in change from 10. to 9.
@@ -90,7 +79,6 @@ void UpdateDisplay() {
     u8x8.draw2x2Glyph(3, 1, b[n++]);
     u8x8.draw1x2Glyph(5, 1, '.');
   }
-
   u8x8.draw2x2Glyph(2, 3, b[n++]);
   u8x8.draw2x2Glyph(4, 3, b[n++]);
   u8x8.draw2x2Glyph(6, 3, b[n++]);
@@ -100,7 +88,6 @@ void UpdateDisplay() {
   u8x8.draw2x2Glyph(13, 3, b[n]);
 }
 
-int enc_prev_state = 3;
 
 /**
  * The A7 And A6 are purely analog lines on the Arduino Nano
@@ -120,15 +107,16 @@ int enc_prev_state = 3;
  * at which the enccoder was spun
  */
 
-byte enc_state (void) {
+char enc_state (void) {
     //return (analogRead(ENC_A) > 500 ? 1 : 0) + (analogRead(ENC_B) > 500 ? 2: 0);
     return (digitalRead(ENC_A) == LOW ? 1 : 0) + (digitalRead(ENC_B) == LOW ? 2: 0);
 }
 
 int EncRead(void) {
+  static int enc_prev_state = 3;
   int result = 0; 
-  byte newState;
   int enc_speed = 0;
+  char new_state;
   
   unsigned long stop_by = millis() + 50;
   
@@ -160,5 +148,3 @@ int EncRead(void) {
   }
   return(result);
 }
-
-

@@ -32,18 +32,7 @@
  */
 #include <Wire.h>
 #include <EEPROM.h>
-
-/**
-    The main chip which generates upto three oscillators of various frequencies in the
-    Raduino is the Si5351a. To learn more about Si5351a you can download the datasheet
-    from www.silabs.com although, strictly speaking it is not a requirment to understand this code.
-
-    We no longer use the standard SI5351 library because of its huge overhead due to many unused
-    features consuming a lot of program space. Instead of depending on an external library we now use
-    Jerry Gaffke's, KE7ER, lightweight standalone mimimalist "si5351bx" routines (see further down the
-    code). Here are some defines and declarations used by Jerry's routines:
-*/
-
+#include <U8x8lib.h>
 
 /**
  * We need to carefully pick assignment of pin for various purposes.
@@ -71,44 +60,13 @@
  * A7 is connected to a center pin of good quality 100K or 10K linear potentiometer with the two other ends connected to
  * ground and +5v lines available on the connector. This implments the tuning mechanism
  */
-
-#define ENC_A (9)
-#define ENC_B (10)
-#define FBUTTON (A2)
-#define PTT   (A3)
+#define ENC_A        (9)
+#define ENC_B        (10)
+#define FBUTTON      (A2)
+#define PTT          (A3)
 #define ANALOG_KEYER (A6)
 #define ANALOG_SPARE (A7)
-#define OLED_ENABLE (8)
-
-/** 
- * The Raduino board is the size of a standard 16x2 LCD panel. It has three connectors:
- * 
- * First, is an 8 pin connector that provides +5v, GND and six analog input pins that can also be 
- * configured to be used as digital input or output pins. These are referred to as A0,A1,A2,
- * A3,A6 and A7 pins. The A4 and A5 pins are missing from this connector as they are used to 
- * talk to the Si5351 over I2C protocol. 
- * 
- * Second is a 16 pin LCD connector. This connector is meant specifically for the standard 16x2
- * LCD display in 4 bit mode. The 4 bit mode requires 4 data lines and two control lines to work:
- * Lines used are : RESET, ENABLE, D4, D5, D6, D7 
- * We include the library and declare the configuration of the LCD panel too
- */
-
-#include <U8x8lib.h>
-U8X8_SSD1306_128X64_NONAME_HW_I2C u8x8(/* reset=*/ OLED_ENABLE);
-
-/**
- * The Arduino, unlike C/C++ on a regular computer with gigabytes of RAM, has very little memory.
- * We have to be very careful with variables that are declared inside the functions as they are 
- * created in a memory region called the stack. The stack has just a few bytes of space on the Arduino
- * if you declare large strings inside functions, they can easily exceed the capacity of the stack
- * and mess up your programs. 
- * We circumvent this by declaring a few global buffers as  kitchen counters where we can 
- * slice and dice our strings. These strings are mostly used to control the display or handle
- * the input and output from the USB port. We must keep a count of the bytes used while reading
- * the serial port as we can easily run out of buffer space. This is done in the serial_in_count variable.
- */
-char c[30], b[30];      
+#define OLED_ENABLE  (8)
 
 /** 
  *  The second set of 16 pins on the Raduino's bottom connector are have the three clock outputs and the digital lines to control the rig.
@@ -119,33 +77,27 @@ char c[30], b[30];
  *  - TX_RX line : Switches between Transmit and Receive after sensing the PTT or the morse keyer
  *  - CW_KEY line : turns on the carrier for CW
  */
-
-#define TX_RX (7)
-#define CW_TONE (6)
-#define TX_LPF_A (5)
-#define TX_LPF_B (4)
+#define CW_KEY   (2)
 #define TX_LPF_C (3)
-#define CW_KEY (2)
+#define TX_LPF_B (4)
+#define TX_LPF_A (5)
+#define CW_TONE  (6)
+#define TX_RX    (7)
 
 /**
  * These are the indices where these user changable settinngs are stored  in the EEPROM
  */
-#define MAGIC_NR 0x1c    // (Magic nr value)
-#define MAGIC_ADDR 0     // 00          EEPROM MAGIC NUMBER
-#define MASTER_CAL 1     // 01 02 03 04 int32t
-#define USB_CARRIER 5    // 05 06 07 08 unsigned long
-#define CW_SIDE_TONE 9   // 09 10 11 12 uint16t
-#define VFO_A 13         // 13 14 15 16 unsigned long
-#define VFO_B 17         // 17 18 19 20 unsigned long
-#define CW_SPEED 21      // 21 22       int
-#define VFO_A_USB 23     // 23          char
-#define VFO_B_USB 24     // 24          char
-#define IAMBIC_KEY 25    // 25          char 
-
-
-//values that are stroed for the VFO modes
-#define VFO_MODE_LSB 2
-#define VFO_MODE_USB 3
+#define MAGIC_NR     0x1c // (Magic nr value)
+#define MAGIC_ADDR    0  // EEPROM MAGIC NUMBER
+#define MASTER_CAL    1  // ,2,3,4 long
+#define USB_CARRIER   5  // ,6,7,8 unsigned long
+#define CW_SIDE_TONE  9  // 10,11,12 unsigned int
+#define VFO_A        13  // 14,15,16 unsigned long
+#define VFO_B        17  // 18,19,20 unsigned long
+#define CW_SPEED     21  // 22       int
+#define VFO_A_USB    23  // char
+#define VFO_B_USB    24  // char
+#define IAMBIC_KEY   25  // char 
 
 /**
  * The uBITX is an upconnversion transceiver. The first IF is at 45 MHz.
@@ -164,51 +116,76 @@ char c[30], b[30];
  * 12 MHz where its fifth harmonic beats with the arduino's 16 Mhz oscillator's fourth harmonic
  */
 
-// limits the tuning and working range of the ubitx between 3 MHz and 30 MHz
+// limits the tuning and working range of the ubitx between 1 MHz and 30 MHz
 #define LOWEST_FREQ   (1000000l)
 #define HIGHEST_FREQ (30000000l)
 
-//we directly generate the CW by programmin the Si5351 to the cw tx frequency, hence, both are different modes
+//we directly generate the CW by programming the Si5351 to the cw tx frequency, hence, both are different modes
 //these are the parameter passed to StartTx
 #define TX_SSB 0
 #define TX_CW 1
 
+/** 
+ * The Raduino board is the size of a standard 16x2 LCD panel. It has three connectors:
+ * 
+ * First, is an 8 pin connector that provides +5v, GND and six analog input pins that can also be 
+ * configured to be used as digital input or output pins. These are referred to as A0,A1,A2,
+ * A3,A6 and A7 pins. The A4 and A5 pins are missing from this connector as they are used to 
+ * talk to the Si5351 over I2C protocol. 
+ * 
+ * Second is a 16 pin LCD connector. This connector is meant specifically for the standard 16x2
+ * LCD display in 4 bit mode. The 4 bit mode requires 4 data lines and two control lines to work:
+ * Lines used are : RESET, ENABLE, D4, D5, D6, D7 
+ * We include the library and declare the configuration of the LCD panel too
+ */
+U8X8_SSD1306_128X64_NONAME_HW_I2C u8x8(/* reset=*/ OLED_ENABLE);
+
+
+/**
+ * The Arduino, unlike C/C++ on a regular computer with gigabytes of RAM, has very little memory.
+ * We have to be very careful with variables that are declared inside the functions as they are 
+ * created in a memory region called the stack. The stack has just a few bytes of space on the Arduino
+ * if you declare large strings inside functions, they can easily exceed the capacity of the stack
+ * and mess up your programs. 
+ * We circumvent this by declaring a few global buffers as  kitchen counters where we can 
+ * slice and dice our strings. These strings are mostly used to control the display or handle
+ * the input and output from the USB port. We must keep a count of the bytes used while reading
+ * the serial port as we can easily run out of buffer space. This is done in the serial_in_count variable.
+ */
+char c[30], b[30];      
+
 // These variables are stored in EEPROM:
-int32_t master_cal;
+long master_cal;
 unsigned long usb_carrier;
-// 18490
-uint16_t cw_side_tone;
+unsigned int cw_side_tone;
 unsigned long vfo_a;
 unsigned long vfo_b;
 int cw_speed;
 char vfo_a_usb;
 char vfo_b_usb;
-uint8_t iambic_key;
-
-int cw_delay_time;
-char rit_on;
-char is_usb;                   //upper sideband was selected, this is reset to the default for the 
-unsigned char keyer_control;
+char iambic_key;
 
 unsigned long first_if;
-char split_on;                 //working split, uses VFO B as the transmit frequency, (NOT IMPLEMENTED YET)
+char split_on;  //working split, uses VFO B as the transmit frequency, (TODO NOT IMPLEMENTED YET)
 char vfo_active;
+int cw_delay_time;
+char rit_on;
+char is_usb;
+char keyer_control;
 
+// TODO: can we live with only one RIT variable?
 unsigned long frequency, rit_rx_frequency, rit_tx_frequency;  //frequency is the current frequency on the dial
-
-#define IAMBICB 0x10 // 0 for Iambic A, 1 for Iambic B
-
 
 /**
  * Raduino needs to keep track of current state of the transceiver. These are a few variables that do it
  */
-uint8_t tx_cat = 0;            //turned on if the transmitting due to a CAT command
-char in_tx = 0;                //it is set to 1 if in transmit mode (whatever the reason : cw, ptt or cat)
-char key_down = 0;             //in cw mode, denotes the carrier is being transmitted
-                              //frequency when it crosses the frequency border of 10 MHz
-byte menu_state = 0;           //set to 2 when the menu is being displayed, if a menu item sets it to zero, the menu is exited
+char tx_cat = 0;  //turned on if the transmitting due to a CAT command
+char in_tx = 0;  //it is set to 1 if in transmit mode (whatever the reason : cw, ptt or cat)
+char key_down = 0;  //in cw mode, denotes the carrier is being transmitted
+                    //frequency when it crosses the frequency border of 10 MHz
+char menu_state = 0; //set to 2 when the menu is being displayed, if a menu item sets it to zero, the menu is exited
 unsigned long cw_timeout = 0;  //milliseconds to go before the cw transmit line is released and the radio goes back to rx mode
-                              //beat frequency
+                               //beat frequency
 
 /**
  * Below are the basic functions that control the uBitx. Understanding the functions before 
@@ -223,7 +200,6 @@ void ActiveDelay(unsigned int delay_by) {
   unsigned long time_start = millis();
 
   while (millis() - time_start <= delay_by) {
-      //Background Work      
     CheckCat();
   }
 }
@@ -243,25 +219,20 @@ void ActiveDelay(unsigned int delay_by) {
  * - KT3 when switched off selects the 3.5-5 Mhz filter
  * See the circuit to understand this
  */
-
 void SetTxFilters(unsigned long freq) {
-  
   if (freq > 21000000L) {  // the default filter is with 35 MHz cut-off
     digitalWrite(TX_LPF_A, 0);
     digitalWrite(TX_LPF_B, 0);
     digitalWrite(TX_LPF_C, 0);
-  }
-  else if (freq >= 14000000L) { //thrown the KT1 relay on, the 30 MHz LPF is bypassed and the 14-18 MHz LPF is allowd to go through
+  } else if (freq >= 14000000L) { //thrown the KT1 relay on, the 30 MHz LPF is bypassed and the 14-18 MHz LPF is allowd to go through
     digitalWrite(TX_LPF_A, 1);
     digitalWrite(TX_LPF_B, 0);
     digitalWrite(TX_LPF_C, 0);
-  }
-  else if (freq > 7000000L) {
+  } else if (freq > 7000000L) {
     digitalWrite(TX_LPF_A, 0);
     digitalWrite(TX_LPF_B, 1);
     digitalWrite(TX_LPF_C, 0);    
-  }
-  else {
+  } else {
     digitalWrite(TX_LPF_A, 0);
     digitalWrite(TX_LPF_B, 0);
     digitalWrite(TX_LPF_C, 1);    
@@ -292,8 +263,7 @@ void SetFrequency(unsigned long f) {
   if (is_usb) {
     si5351bx_setfreq(2, first_if + f);
     si5351bx_setfreq(1, first_if + usb_carrier);
-  }
-  else{
+  } else{
     si5351bx_setfreq(2, first_if + f);
     si5351bx_setfreq(1, first_if - usb_carrier);
   }
@@ -307,8 +277,7 @@ void SetFrequency(unsigned long f) {
  * Note: In cw mode, doesnt key the radio, only puts it in tx mode
  * CW offest is calculated as lower than the operating frequency when in LSB mode, and vice versa in USB mode
  */
- 
-void StartTx(byte tx_mode) {
+void StartTx(char tx_mode) {
   digitalWrite(TX_RX, 1);
   in_tx = 1;
   
@@ -316,20 +285,15 @@ void StartTx(byte tx_mode) {
     //save the current as the rx frequency
     rit_rx_frequency = frequency;
     SetFrequency(rit_tx_frequency);
-  }
-  else 
-  {
-    if (split_on == 1) {
-      if (vfo_active == VFO_B) {
-        vfo_active = VFO_A;
-        is_usb = vfo_a_usb;
-        frequency = vfo_a;
-      }
-      else if (vfo_active == VFO_A) {
-        vfo_active = VFO_B;
-        frequency = vfo_b;
-        is_usb = vfo_b_usb;        
-      }
+  } else if (split_on == 1) {
+    if (vfo_active == VFO_B) {
+      vfo_active = VFO_A;
+      is_usb = vfo_a_usb;
+      frequency = vfo_a;
+    } else if (vfo_active == VFO_A) {
+      vfo_active = VFO_B;
+      frequency = vfo_b;
+      is_usb = vfo_b_usb;        
     }
     SetFrequency(frequency);
   }
@@ -354,23 +318,19 @@ void StopTx() {
   in_tx = 0;
 
   digitalWrite(TX_RX, 0);           //turn off the tx
-  si5351bx_setfreq(0, usb_carrier);  //set back the cardrier oscillator anyway, cw tx switches it off
+  si5351bx_setfreq(0, usb_carrier);  //set back the carrrier oscillator anyway, cw tx switches it off
 
-  if (rit_on)
+  if (rit_on) {
     SetFrequency(rit_rx_frequency);
-  else{
-    if (split_on == 1) {
-      //vfo Change
-      if (vfo_active == VFO_B) {
-        vfo_active = VFO_A;
-        frequency = vfo_a;
-        is_usb = vfo_a_usb;        
-      }
-      else if (vfo_active == VFO_A) {
-        vfo_active = VFO_B;
-        frequency = vfo_b;
-        is_usb = vfo_b_usb;        
-      }
+  } else if (split_on == 1) {
+    if (vfo_active == VFO_B) {
+      vfo_active = VFO_A;
+      frequency = vfo_a;
+      is_usb = vfo_a_usb;        
+    } else if (vfo_active == VFO_A) {
+      vfo_active = VFO_B;
+      frequency = vfo_b;
+      is_usb = vfo_b_usb;        
     }
     SetFrequency(frequency);
   }
@@ -412,22 +372,20 @@ void CheckPtt() {
   if (cw_timeout > 0)
     return;
     
-  if (digitalRead(PTT) == 0 && in_tx == 0) {
+  if (digitalRead(PTT) == LOW && in_tx == 0) {
     StartTx(TX_SSB);
     ActiveDelay(50); //debounce the PTT
   }
 	
-  if (digitalRead(PTT) == 1 && in_tx == 1)
+  if (digitalRead(PTT) == HIGH && in_tx == 1)
     StopTx();
 }
 
 void CheckButton() {
   //only if the button is pressed
-  if (!BtnDown())
-    return;
+  if (!BtnDown()) return;
   ActiveDelay(50);
-  if (!BtnDown()) //debounce
-    return;
+  if (!BtnDown()) return;  //debounce
  
   DoMenu();
 }
@@ -439,8 +397,6 @@ void CheckButton() {
  * This way, you can quickly move to another band by just spinning the 
  * tuning knob
  */
-
-
 void DoTuning() {
   int s;
   unsigned long prev_freq;
@@ -462,10 +418,10 @@ void DoTuning() {
     else
       frequency -= 10000l;
 
-    if (prev_freq < 10000000l && frequency > 10000000l) // TODO: BUG HERE ON FEQ EXACT 1000000..
+    if (prev_freq < 10000000l && frequency >= 10000000l)
       is_usb = 1;
       
-    if (prev_freq > 10000000l && frequency < 10000000l)
+    if (prev_freq >= 10000000l && frequency < 10000000l)
       is_usb = 0;
 
     SetFrequency(frequency);
@@ -478,20 +434,18 @@ void DoTuning() {
  */
 void DoRit() {
   int knob = EncRead();
-  unsigned long old_freq = frequency;
+  unsigned long prev_freq = frequency;
 
   if (knob < 0)
     frequency -= 100l;
   else if (knob > 0)
     frequency += 100;
  
-  if (old_freq != frequency) {
+  if (prev_freq != frequency) {
     SetFrequency(frequency);
     UpdateDisplay();
   }
 }
-
-
 
 void ResetSettings() {
   master_cal = 154117;
@@ -504,6 +458,11 @@ void ResetSettings() {
   vfo_b_usb = 1;
   iambic_key = 1;
 
+  // Before type change
+  // Sketch uses 18520 bytes (60%) of program storage space. Maximum is 30720 bytes.
+  // Global variables use 1027 bytes (50%) of dynamic memory, leaving 1021 bytes for local variables. Maximum is 2048 bytes.
+  // NEXT        18580 - 60 bytes more.. crazy..
+
   EEPROM.put(MASTER_CAL, master_cal);
   EEPROM.put(USB_CARRIER, usb_carrier);
   EEPROM.put(CW_SIDE_TONE, cw_side_tone);
@@ -514,7 +473,7 @@ void ResetSettings() {
   EEPROM.put(VFO_B_USB, vfo_b_usb);
   EEPROM.put(IAMBIC_KEY, iambic_key);
 
-  unsigned char magicNr = MAGIC_NR;
+  char magicNr = MAGIC_NR;
   EEPROM.put(MAGIC_ADDR, magicNr);
 }
 
@@ -524,7 +483,7 @@ void ResetSettings() {
  * variables.
  */
 void InitSettings() {
-  unsigned char magicNr;
+  char magicNr;
 
   EEPROM.get(MAGIC_ADDR, magicNr);
   if (magicNr != MAGIC_NR) {
@@ -552,25 +511,20 @@ void InitSettings() {
   rit_on = 0;
 
    if (iambic_key == 1)
-     keyer_control &= ~IAMBICB;
+     keyer_control &= ~0x10;
    else if (iambic_key == 2)
-     keyer_control |= IAMBICB;
+     keyer_control |= 0x10;
 }
 
 void InitPorts() {
-
   analogReference(DEFAULT);
 
   pinMode(ENC_A, INPUT_PULLUP);
   pinMode(ENC_B, INPUT_PULLUP);
   pinMode(FBUTTON, INPUT_PULLUP);
   
-  //configure the function button to use the external pull-up
-//  pinMode(FBUTTON, INPUT);
-//  digitalWrite(FBUTTON, HIGH);
-
   pinMode(PTT, INPUT_PULLUP);
-  //YL3AME:pinMode(ANALOG_KEYER, INPUT_PULLUP);
+  //pinMode(ANALOG_KEYER, INPUT_PULLUP);
 
   pinMode(CW_TONE, OUTPUT);  
   digitalWrite(CW_TONE, 0);
@@ -591,8 +545,7 @@ void InitPorts() {
   pinMode(OLED_ENABLE, OUTPUT);
 }
 
-void setup()
-{
+void setup() {
   Serial.begin(38400);
   Serial.flush();  
   
@@ -616,26 +569,21 @@ void setup()
   UpdateDisplay();
 }
 
-
 /**
  * The loop checks for key_down, ptt, function button and tuning.
  */
-
 void loop() { 
-  
   CwKeyer(); 
-  if (!tx_cat)
-    CheckPtt();
+  if (!tx_cat) CheckPtt();
   CheckButton();
 
   //tune only when not tranmsitting 
   if (!in_tx) {
     if (rit_on)
       DoRit();
-    else 
+    else
       DoTuning();
   }
   
-  //we check CAT after the encoder as it might put the radio into TX
   CheckCat();
 }

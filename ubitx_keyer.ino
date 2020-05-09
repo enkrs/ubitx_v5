@@ -34,13 +34,12 @@ int cw_adc_dot_to = 600;
 int cw_adc_dash_from = 601;
 int cw_adc_dash_to = 800;
 
-byte delay_before_cw_start_time = 50;
+char delay_before_cw_start_time = 50;
 
 
 
 
 // in milliseconds, this is the parameter that determines how long the tx will hold between cw key downs
-//#define CW_TIMEOUT (600l)   //Change to CW Delaytime for value save to eeprom
 #define PADDLE_DOT 1
 #define PADDLE_DASH 2
 #define PADDLE_BOTH 3
@@ -54,7 +53,7 @@ char last_paddle = 0;
 /** Unused function
 
 //reads the analog keyer pin and reports the paddle
-byte GetPaddle() {
+char GetPaddle() {
   int paddle = 801; //YL3AME:analogRead(ANALOG_KEYER);
 
   if (paddle > 800)         // above 4v is up
@@ -81,8 +80,6 @@ void CwKeydown() {
   tone(CW_TONE, cw_side_tone); 
   digitalWrite(CW_KEY, 1);     
 
-  //Modified by KD8CEC, for CW Delay Time save to eeprom
-  //cw_timeout = millis() + CW_TIMEOUT;
   cw_timeout = millis() + cw_delay_time * 10;  
 }
 
@@ -96,7 +93,6 @@ void cwKeyUp() {
   digitalWrite(CW_KEY, 0);    
   
   //Modified by KD8CEC, for CW Delay Time save to eeprom
-  //cw_timeout = millis() + CW_TIMEOUT;
   cw_timeout = millis() + cw_delay_time * 10;
 }
 
@@ -108,12 +104,12 @@ void cwKeyUp() {
 #define IAMBICB 0x10 // 0 for Iambic A, 1 for Iambic B
 enum KSTYPE {IDLE, CHK_DIT, CHK_DAH, KEYED_PREP, KEYED, INTER_ELEMENT };
 static unsigned long ktimer;
-unsigned char keyerState = IDLE;
+char keyerState = IDLE;
 
 //Below is a test to reduce the keying error. do not delete lines
 //create by KD8CEC for compatible with new CW Logic
-uint8_t UpdatePaddleLatch(byte isUpdateKeyState) {
-  uint8_t tmp_keyer_control = 0;
+char UpdatePaddleLatch(char isUpdateKeyState) {
+  char tmp_keyer_control = 0;
   
   int paddle = 801; //YL3AME:analogRead(ANALOG_KEYER);
   //diagnostic, VU2ESE
@@ -146,131 +142,119 @@ uint8_t UpdatePaddleLatch(byte isUpdateKeyState) {
 // New logic, by RON
 // modified by KD8CEC
 ******************************************************************************/
-void CwKeyer(void) {
-  last_paddle = 0;
-  uint8_t continue_loop = 1;
-  uint8_t tmp_keyer_control = 0;
+void CwKeyerIambic(void) {
+  char tmp_keyer_control = 0;
 
-  if( iambic_key ) {
-    while(continue_loop) {
-      switch (keyerState) {
-        case IDLE:
-          tmp_keyer_control = UpdatePaddleLatch(0);
-          if ( tmp_keyer_control == DAH_L || tmp_keyer_control == DIT_L || 
-            tmp_keyer_control == (DAH_L | DIT_L) || (keyer_control & 0x03)) {
-             UpdatePaddleLatch(1);
-             keyerState = CHK_DIT;
-          }else{
-            if (0 < cw_timeout && cw_timeout < millis()) {
-              cw_timeout = 0;
-              StopTx();
-            }
-            continue_loop = 0;
+  last_paddle = 0;
+
+  while (1) {
+    switch (keyerState) {
+      case IDLE:
+        tmp_keyer_control = UpdatePaddleLatch(0);
+        if (tmp_keyer_control == DAH_L ||
+            tmp_keyer_control == DIT_L || 
+            tmp_keyer_control == (DAH_L | DIT_L) ||
+            (keyer_control & 0x03)) {
+            UpdatePaddleLatch(1);
+            keyerState = CHK_DIT;
+        } else {
+          if (0 < cw_timeout && cw_timeout < millis()) {
+            cw_timeout = 0;
+            StopTx();
           }
-          break;
-    
-        case CHK_DIT:
-          if (keyer_control & DIT_L) {
-            keyer_control |= DIT_PROC;
-            ktimer = cw_speed;
-            keyerState = KEYED_PREP;
-          }else{
-            keyerState = CHK_DAH;
-          }
-          break;
-    
-        case CHK_DAH:
-          if (keyer_control & DAH_L) {
-            ktimer = cw_speed*3;
-            keyerState = KEYED_PREP;
-          }else{
-            keyerState = IDLE;
-          }
-          break;
-    
-        case KEYED_PREP:
-          //modified KD8CEC
-          if (!in_tx) {
-            //DelayTime Option
-            ActiveDelay(delay_before_cw_start_time * 2);
-            
-            key_down = 0;
-            cw_timeout = millis() + cw_delay_time * 10;  //+ CW_TIMEOUT;
-            StartTx(TX_CW);
-          }
-          ktimer += millis(); // set ktimer to interval end time
-          keyer_control &= ~(DIT_L + DAH_L); // clear both paddle latch bits
-          keyerState = KEYED; // next state
-          
-          CwKeydown();
-          break;
-    
-        case KEYED:
-          if (millis() > ktimer) { // are we at end of key down ?
-           cwKeyUp();
-           ktimer = millis() + cw_speed; // inter-element time
-            keyerState = INTER_ELEMENT; // next state
-          }else if (keyer_control & IAMBICB) {
-            UpdatePaddleLatch(1); // early paddle latch in Iambic B mode
-          }
-          break;
-    
-        case INTER_ELEMENT:
-          // Insert time between dits/dahs
-          UpdatePaddleLatch(1); // latch paddle state
-          if (millis() > ktimer) { // are we at end of inter-space ?
-            if (keyer_control & DIT_PROC) { // was it a dit or dah ?
-              keyer_control &= ~(DIT_L + DIT_PROC); // clear two bits
-              keyerState = CHK_DAH; // dit done, check for dah
-            }else{
-              keyer_control &= ~(DAH_L); // clear dah latch
-              keyerState = IDLE; // go idle
-            }
-          }
-          break;
-      }
-  
-      CheckCat();
-    } //end of while
-  }
-  else{
-    while(1) {
-      if (UpdatePaddleLatch(0) == DIT_L) {
-        // if we are here, it is only because the key is pressed
+          return;
+        }
+        break;
+      case CHK_DIT:
+        if (keyer_control & DIT_L) {
+          keyer_control |= DIT_PROC;
+          ktimer = cw_speed;
+          keyerState = KEYED_PREP;
+        } else {
+          keyerState = CHK_DAH;
+        }
+        break;
+      case CHK_DAH:
+        if (keyer_control & DAH_L) {
+          ktimer = cw_speed * 3;
+          keyerState = KEYED_PREP;
+        } else {
+          keyerState = IDLE;
+        }
+        break;
+      case KEYED_PREP:
         if (!in_tx) {
-          //DelayTime Option
           ActiveDelay(delay_before_cw_start_time * 2);
           
           key_down = 0;
-          cw_timeout = millis() + cw_delay_time * 10;  //+ CW_TIMEOUT; 
+          cw_timeout = millis() + cw_delay_time * 10;
           StartTx(TX_CW);
         }
-        CwKeydown();
+        ktimer += millis();  // set ktimer to interval end time
+        keyer_control &= ~(DIT_L + DAH_L);  // clear both paddle latch bits
+        keyerState = KEYED;  // next state
         
-        while ( UpdatePaddleLatch(0) == DIT_L ) 
-          ActiveDelay(1);
-          
-        cwKeyUp();
-      }
-      else{
-        if (0 < cw_timeout && cw_timeout < millis()) {
-          cw_timeout = 0;
-          key_down = 0;
-          StopTx();
+        CwKeydown();
+        break;
+      case KEYED:
+        if (millis() > ktimer) {  // are we at end of key down ?
+          cwKeyUp();
+          ktimer = millis() + cw_speed;  // inter-element time
+          keyerState = INTER_ELEMENT;  // next state
+        } else if (keyer_control & IAMBICB) {
+          UpdatePaddleLatch(1);  // early paddle latch in Iambic B mode
         }
-        //if (!cw_timeout) //removed by KD8CEC
-        //   return;
-        // got back to the beginning of the loop, if no further activity happens on straight key
-        // we will time out, and return out of this routine 
-        //delay(5);
-        //delay_background(5, 3); //removed by KD8CEC
-        //continue;               //removed by KD8CEC
-        return;                   //Tx stop control by Main Loop
-      }
+        break;
+      case INTER_ELEMENT:  // Insert time between dits/dahs
+        UpdatePaddleLatch(1);  // latch paddle state
+        if (millis() > ktimer) {  // are we at end of inter-space ?
+          if (keyer_control & DIT_PROC) {  // was it a dit or dah ?
+            keyer_control &= ~(DIT_L + DIT_PROC);  // clear two bits
+            keyerState = CHK_DAH;  // dit done, check for dah
+          } else {
+            keyer_control &= ~(DAH_L);  // clear dah latch
+            keyerState = IDLE;  // go idle
+          }
+        }
+        break;
+    }
+    CheckCat();
+  }
+}
 
-      CheckCat();
-    } //end of while
-  }   //end of elese
+void CwKeyerStraight(void) {
+  while(1) {
+    if (UpdatePaddleLatch(0) == DIT_L) {
+      // if we are here, it is only because the key is pressed
+      if (!in_tx) {
+        //DelayTime Option
+        ActiveDelay(delay_before_cw_start_time * 2);
+        
+        key_down = 0;
+        cw_timeout = millis() + cw_delay_time * 10;
+        StartTx(TX_CW);
+      }
+      CwKeydown();
+      
+      while (UpdatePaddleLatch(0) == DIT_L) 
+        ActiveDelay(1);
+        
+      cwKeyUp();
+    } else {
+      if (0 < cw_timeout && cw_timeout < millis()) {
+        cw_timeout = 0;
+        key_down = 0;
+        StopTx();
+      }
+      return;                   //Tx stop control by Main Loop
+    }
+    CheckCat();
+  }
+}
+
+void CwKeyer(void) {
+  if (iambic_key) CwKeyerIambic();
+  else CwKeyerStraight();
 }
 
 
