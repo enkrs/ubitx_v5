@@ -17,21 +17,21 @@
 
 
 //returns 1 if the button is pressed
-uint8_t btnDown(){
+uint8_t BtnDown(){
   if (digitalRead(FBUTTON) == HIGH)
     return 0;
   else
     return 1;
 }
 
-void btnWaitUp(){
+void BtnWaitUp(){
   while (digitalRead(FBUTTON) == LOW)
-    activeDelay(50);
-  activeDelay(50);
+    ActiveDelay(50);
+  ActiveDelay(50);
 }
 
 // The generic routine to display one line on the LCD 
-void printLine(unsigned char linenmbr, const char *c) {
+void PrintLine(unsigned char linenmbr, const char *c) {
   if (c[0] == 0) {
     u8x8.clearLine(linenmbr);
     u8x8.clearLine(linenmbr + 1);
@@ -47,14 +47,10 @@ void printLine(unsigned char linenmbr, const char *c) {
 
 
 //  short cut to print to the first line
-void printLine1(const char *c) {
-  printLine(4,c);
+void PrintStatus(const char *c) {
+  PrintLine(6,c);
 }
-//  short cut to print to the first line
-void printLine6(const char *c) {
-  printLine(6,c);
-}
-void printLine6value(const char *c, const char *v) {
+void PrintStatusValue(const char *c, const char *v) {
   u8x8.draw1x2String(1, 6, c);
   u8x8.draw1x2String(15 - strlen(v) + 1, 6, v);
   // 0123456789012345
@@ -65,19 +61,19 @@ void printLine6value(const char *c, const char *v) {
 }
 
 // this builds up the top line of the display with frequency and mode
-void updateDisplay() {
-  if (inTx) {
+void UpdateDisplay() {
+  if (in_tx) {
     u8x8.draw1x2Glyph(11,0,' ');
     u8x8.setInverseFont(1);
-    u8x8.draw1x2String(12,0,cwTimeout > 0 ? " CW " : " TX ");
+    u8x8.draw1x2String(12,0,cw_timeout > 0 ? " CW " : " TX ");
     u8x8.setInverseFont(0);
   } else {
-    if (ritOn)
+    if (rit_on)
       u8x8.draw1x2String(11,0,"RIT");
     else
-      u8x8.draw1x2String(11,0, isUSB ? "USB" : "LSB");
+      u8x8.draw1x2String(11,0, is_usb ? "USB" : "LSB");
     u8x8.draw1x2Glyph(14,0,' ');
-    u8x8.draw1x2Glyph(15,0, vfoActive == VFO_A ? 'A' : 'B');
+    u8x8.draw1x2Glyph(15,0, vfo_active == VFO_A ? 'A' : 'B');
   }
 
   memset(b, 0, sizeof(b));
@@ -118,7 +114,7 @@ int enc_prev_state = 3;
  * The enc_state returns a two-bit number such that each bit reflects the current
  * value of each of the two phases of the encoder
  * 
- * The enc_read returns the number of net pulses counted over 50 msecs. 
+ * The EncRead returns the number of net pulses counted over 50 msecs. 
  * If the puluses are -ve, they were anti-clockwise, if they are +ve, the
  * were in the clockwise directions. Higher the pulses, greater the speed
  * at which the enccoder was spun
@@ -129,7 +125,7 @@ byte enc_state (void) {
     return (digitalRead(ENC_A) == LOW ? 1 : 0) + (digitalRead(ENC_B) == LOW ? 2: 0);
 }
 
-int enc_read(void) {
+int EncRead(void) {
   int result = 0; 
   byte newState;
   int enc_speed = 0;
@@ -160,7 +156,7 @@ int enc_read(void) {
       }
     enc_prev_state = newState; // Record state for next pulse interpretation
     enc_speed++;
-    activeDelay(1);
+    ActiveDelay(1);
   }
   return(result);
 }
