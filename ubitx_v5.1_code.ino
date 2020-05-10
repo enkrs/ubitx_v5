@@ -160,10 +160,10 @@ unsigned long usb_carrier;
 unsigned int cw_side_tone;
 unsigned long vfo_a;
 unsigned long vfo_b;
-int cw_speed;
-char vfo_a_usb;
-char vfo_b_usb;
-char iambic_key;
+unsigned int cw_speed;
+unsigned char vfo_a_usb;
+unsigned char vfo_b_usb;
+unsigned char iambic_key;
 
 unsigned long first_if;
 char split_on;  //working split, uses VFO B as the transmit frequency, (TODO NOT IMPLEMENTED YET)

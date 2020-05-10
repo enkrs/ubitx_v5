@@ -1,6 +1,5 @@
 //Normal encoder state
-char prev_enc;
-char enc_count;
+volatile char enc_count = 0;
 
 char EncState (void)
 {
@@ -13,6 +12,7 @@ char EncState (void)
  */
 ISR (PCINT0_vect)
 {
+  static char prev_enc = EncState();
   char cur_enc = EncState();
 
   if ((prev_enc == 0 && cur_enc == 2) ||
@@ -39,9 +39,6 @@ void PciSetup(byte pin) {
 }
 
 void InitEncoder(void) {
-  enc_count = 0;
-  prev_enc = EncState();
-
   // Setup Pin Change Interrupts for the encoder inputs
   PciSetup(ENC_A);
   PciSetup(ENC_B);
@@ -50,5 +47,11 @@ void InitEncoder(void) {
 int EncRead() {
   int ret = enc_count;
   enc_count = 0;
+  return ret;
+}
+
+int EncReadSlow() {
+  int ret = enc_count / 4;
+  if (ret) enc_count = 0;
   return ret;
 }
