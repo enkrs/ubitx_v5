@@ -318,10 +318,10 @@ void StopTx() {
   in_tx = 0;
 
   digitalWrite(TX_RX, 0);           //turn off the tx
-  si5351bx_setfreq(0, usb_carrier);  //set back the carrrier oscillator anyway, cw tx switches it off
+  si5351bx_setfreq(0, usb_carrier);  //set back the carrrier oscillator, cw tx switches it off
 
   if (rit_on) {
-    SetFrequency(rit_rx_frequency);
+    frequency = rit_rx_frequency;
   } else if (split_on == 1) {
     if (vfo_active == VFO_B) {
       vfo_active = VFO_A;
@@ -332,8 +332,8 @@ void StopTx() {
       frequency = vfo_b;
       is_usb = vfo_b_usb;        
     }
-    SetFrequency(frequency);
   }
+  SetFrequency(frequency);
   UpdateDisplay();
 }
 

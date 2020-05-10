@@ -50,26 +50,6 @@ char delay_before_cw_start_time = 50;
 //when both are simultaneously pressed
 char last_paddle = 0;
 
-/** Unused function
-
-//reads the analog keyer pin and reports the paddle
-char GetPaddle() {
-  int paddle = 801; //YL3AME:analogRead(ANALOG_KEYER);
-
-  if (paddle > 800)         // above 4v is up
-    return 0;
-    
-  if (paddle > 600)    // 4-3v is dot
-    return PADDLE_DASH;
-  else if (paddle > 300)    //1-2v is dash
-    return PADDLE_DOT;
-  else if (paddle > 50)
-    return PADDLE_BOTH;     //both are between 1 and 2v
-  else
-    return PADDLE_STRAIGHT; //less than 1v is the straight key
-}
-*/
-
 /**
  * Starts transmitting the carrier with the sidetone
  * It assumes that we have called cwTxStart and not called cwTxStop
@@ -111,10 +91,9 @@ char keyerState = IDLE;
 char UpdatePaddleLatch(char isUpdateKeyState) {
   char tmp_keyer_control = 0;
   
-  int paddle = 801; //YL3AME:analogRead(ANALOG_KEYER);
-  //diagnostic, VU2ESE
-  //itoa(paddle, b, 10);
-  //PrintStatus(b);
+  // int paddle = analogRead(ANALAG_KEYER);
+  int paddle = 801;  // always off
+  // int paddle = digitalRead(PTT) == LOW ? 25 : 801;  // Emulate paddle with PTT button
 
   if (paddle >= cw_adc_dash_from && paddle <= cw_adc_dash_to)
     tmp_keyer_control |= DAH_L;
