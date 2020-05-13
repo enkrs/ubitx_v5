@@ -37,7 +37,7 @@ void PrintLine(char linenmbr, const char *c) {
 
 //  short cut to print to the first line
 void PrintStatus(const char *c) {
-  PrintLine(6,c);
+  PrintLine(6, c);
 }
 void PrintStatusValue(const char *c, const char *v) {
   u8x8.draw1x2String(1, 6, c);
@@ -52,17 +52,17 @@ void PrintStatusValue(const char *c, const char *v) {
 // this builds up the top line of the display with frequency and mode
 void UpdateDisplay() {
   if (in_tx) {
-    u8x8.draw1x2Glyph(11,0,' ');
+    u8x8.draw1x2Glyph(11, 0, ' ');
     u8x8.setInverseFont(1);
-    u8x8.draw1x2String(12,0,cw_timeout > 0 ? " CW " : " TX ");
+    u8x8.draw1x2String(12, 0, cw_timeout > 0 ? " CW " : " TX ");
     u8x8.setInverseFont(0);
   } else {
     if (rit_on)
-      u8x8.draw1x2String(11,0,"RIT");
+      u8x8.draw1x2String(11, 0, "RIT");
     else
-      u8x8.draw1x2String(11,0, is_usb ? "USB" : "LSB");
-    u8x8.draw1x2Glyph(14,0,' ');
-    u8x8.draw1x2Glyph(15,0, vfo_active == VFO_A ? 'A' : 'B');
+      u8x8.draw1x2String(11, 0, is_usb ? "USB" : "LSB");
+    u8x8.draw1x2Glyph(14, 0, ' ');
+    u8x8.draw1x2Glyph(15, 0, vfo_active == VFO_A ? 'A' : 'B');
   }
 
   memset(b, 0, sizeof(b));

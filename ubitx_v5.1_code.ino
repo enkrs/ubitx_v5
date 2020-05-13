@@ -488,7 +488,7 @@ void InitSettings() {
   EEPROM.get(MAGIC_ADDR, magicNr);
   if (magicNr != MAGIC_NR) {
     ResetSettings();
-    u8x8.draw1x2String(1,6,"EEPROM RESET   ");
+    u8x8.draw1x2String(1, 6, "EEPROM RESET   ");
   } else {
     EEPROM.get(MASTER_CAL, master_cal);
     EEPROM.get(USB_CARRIER, usb_carrier);
@@ -529,7 +529,7 @@ void InitPorts() {
   pinMode(CW_TONE, OUTPUT);  
   digitalWrite(CW_TONE, 0);
   
-  pinMode(TX_RX,OUTPUT);
+  pinMode(TX_RX, OUTPUT);
   digitalWrite(TX_RX, 0);
 
   pinMode(TX_LPF_A, OUTPUT);
@@ -557,8 +557,8 @@ void setup() {
 
   //we print this line so this shows up even if the raduino 
   //crashes later in the code
-  u8x8.drawString(1,6,"UBITX V5.1"); 
-  u8x8.drawString(1,7,"YL3AME"); 
+  u8x8.drawString(1, 6, "UBITX V5.1"); 
+  u8x8.drawString(1, 7, "YL3AME"); 
 
   InitSettings();
   InitPorts();     

@@ -54,7 +54,7 @@ static char GetLowNibble(char b) {
 // Takes a number and produces the requested number of decimal digits, staring
 // from the least significant digit.  
 //
-static void GetDecimalDigits(unsigned long number,char* result,int digits) {
+static void GetDecimalDigits(unsigned long number, char* result, int digits) {
   for (int i = 0; i < digits; i++) {
     // "Mask off" (in a decimal sense) the LSD and return it
     result[i] = number % 10;
@@ -65,21 +65,21 @@ static void GetDecimalDigits(unsigned long number,char* result,int digits) {
 
 // Takes a frequency and writes it into the CAT command buffer in BCD form.
 //
-void WriteFreq(unsigned long freq,char* cmd) {
+void WriteFreq(unsigned long freq, char* cmd) {
   // Convert the frequency to a set of decimal digits. We are taking 9 digits
   // so that we can get up to 999 MHz. But the protocol doesn't care about the
   // LSD (1's place), so we ignore that digit.
   char digits[9];
-  GetDecimalDigits(freq,digits,9);
+  GetDecimalDigits(freq, digits, 9);
   // Start from the LSB and get each nibble 
-  cmd[3] = SetLowNibble(cmd[3],digits[1]);
-  cmd[3] = SetHighNibble(cmd[3],digits[2]);
-  cmd[2] = SetLowNibble(cmd[2],digits[3]);
-  cmd[2] = SetHighNibble(cmd[2],digits[4]);
-  cmd[1] = SetLowNibble(cmd[1],digits[5]);
-  cmd[1] = SetHighNibble(cmd[1],digits[6]);
-  cmd[0] = SetLowNibble(cmd[0],digits[7]);
-  cmd[0] = SetHighNibble(cmd[0],digits[8]);  
+  cmd[3] = SetLowNibble(cmd[3], digits[1]);
+  cmd[3] = SetHighNibble(cmd[3], digits[2]);
+  cmd[2] = SetLowNibble(cmd[2], digits[3]);
+  cmd[2] = SetHighNibble(cmd[2], digits[4]);
+  cmd[1] = SetLowNibble(cmd[1], digits[5]);
+  cmd[1] = SetHighNibble(cmd[1], digits[6]);
+  cmd[0] = SetLowNibble(cmd[0], digits[7]);
+  cmd[0] = SetHighNibble(cmd[0], digits[8]);  
 }
 
 // This function takes a frquency that is encoded using 4 bytes of BCD
@@ -277,7 +277,7 @@ void ProcessCatCommand(char* cmd) {
         response[4] = 0x01; //USB
       else
         response[4] = 0x00; //LSB
-      Serial.write(response,5);
+      Serial.write(response, 5);
       break;
     case 0x07: // set mode
       if (cmd[0] == 0x00 || cmd[0] == 0x03)
@@ -324,7 +324,7 @@ void ProcessCatCommand(char* cmd) {
       // get receiver status, we have hardcoded this as
       //as we dont' support ctcss, etc.
       response[0] = 0x09;
-      Serial.write(response,1);
+      Serial.write(response, 1);
       break;
     case 0xf7: {
       char isHighSWR = 0;
@@ -348,7 +348,7 @@ void ProcessCatCommand(char* cmd) {
       itoa(cmd[4], b, 16);
       strcat(b, ">");
       strcat(b, c);
-      u8x8.drawString(1,5,b);
+      u8x8.drawString(1, 5, b);
       response[0] = 0x00;
       Serial.write(response[0]);
   }
@@ -389,21 +389,6 @@ void CheckCat() {
 
   cat_count++;
 
-  /*
-  if (cat[4] != 0xf7 && cat[4] != 0xbb && cat[4] != 0x03){
-    //sprintf(b, "%d %02x %02x%02x%02x%02x", cat_count, cat[4],cat[0], cat[1], cat[2], cat[3]);  
-    itoa(cat_count, b, 10);
-    strcat(b, " ");
-    itoa(cat[4], c, 16); strcat(b, c);
-    strcat(b, " ");
-    itoa(cat[3], c, 16); strcat(b, c);
-    itoa(cat[2], c, 16); strcat(b, c);
-    itoa(cat[1], c, 16); strcat(b, c);
-    itoa(cat[1], c, 16); strcat(b, c);
-    u8x8.drawString(1,5,b);
-  }
-  */
-  
   ProcessCatCommand(cat);
   inside_cat = 0;
 }

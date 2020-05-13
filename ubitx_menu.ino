@@ -80,7 +80,7 @@ static const char* STR_BAND_SELECT = "BAND SELECT";
 static const char* STR_CW_DELAY = "CW DELAY";
 static const char* STR_CW_TONE = "CW TONE";
 static const char* STR_CW_KEY = "CW KEY";
-static const char* STRS_IAMBIC[3] = {"STRIGHT","IAMBIC-A","IAMBIC-B"};
+static const char* STRS_IAMBIC[3] = {"STRIGHT", "IAMBIC-A", "IAMBIC-B"};
 static const char* STRS_ADC[4] = {"FBUTTON", "PTT", "KEYER", "A7"};
 static const int   PINS_ADC[4] = { FBUTTON, PTT, ANALOG_KEYER, ANALOG_SPARE};
 
@@ -89,7 +89,7 @@ void MenuBand(int btn) {
 
   if (!btn) {
     if (NeedRedraw()) {
-      PrintStatusValue(STR_BAND_SELECT,"..");
+      PrintStatusValue(STR_BAND_SELECT, "..");
     }
     return;
   }
@@ -277,7 +277,7 @@ void MenuSetupCalibration(int btn) {
   }
 
   u8x8.clear();
-  u8x8.draw1x2String(1,4,"NOT IMPLEMENTED");
+  u8x8.draw1x2String(1, 4, "NOT IMPLEMENTED");
   ActiveDelay(2000);
   menu_state = 1;
   //calibrateClock();
@@ -296,7 +296,7 @@ void MenuSetupCarrier(int btn) {
   // usb_carrier = 11053000l;
   si5351bx_setfreq(0, usb_carrier);
   u8x8.clear();
-  u8x8.draw1x2String(1,1,"CALIBRATE BFO");
+  u8x8.draw1x2String(1, 1, "CALIBRATE BFO");
   screen_dirty = 1;
 
   while (!BtnDown()) {
@@ -437,8 +437,8 @@ void MenuResetSettings(int btn) {
 
   ResetSettings();
   u8x8.clear();
-  PrintLine(2,"EEPROM RESET");
-  PrintLine(4,"TURN OFF POWER");
+  PrintLine(2, "EEPROM RESET");
+  PrintLine(4, "TURN OFF POWER");
   while (1) {};
 }
 
