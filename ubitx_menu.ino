@@ -363,6 +363,22 @@ void MenuSetupKeyer(int btn) {
   menu_state = 1;  
 }
 
+void MenuTxToggle(int btn) {
+  if (!btn) {
+    if (NeedRedraw()) {
+      PrintStatusValue("TX INHIBIT", tx_inhibit ? STR_ON : STR_OFF);
+    }
+    return;
+  }
+
+  if (tx_inhibit)
+    tx_inhibit = 0;
+  else
+    tx_inhibit = 1;
+
+  menu_state = 1;
+}
+
 void MenuReadADC1(int btn) {
   static unsigned char selected = 0;
   static int last_adc;
@@ -409,8 +425,8 @@ void DoMenu() {
       BtnWaitUp();
 
     select += EncRead();
-    if (extended_menu && select > 149)
-      select = 149;
+    if (extended_menu && select > 159)
+      select = 159;
     if (!extended_menu && select > 79)
       select = 79;
     if (select < 0)
@@ -448,9 +464,10 @@ void DoMenu() {
       case 9: MenuSetupCwTone(btnState); break;
       case 10: MenuSetupCwDelay(btnState); break;
       case 11: MenuSetupKeyer(btnState); break;
-      case 12: MenuReadADC1(btnState); break;
-      case 13: MenuResetSettings(btnState); break;
-      case 14: MenuExit(btnState);  
+      case 12: MenuTxToggle(btnState); break;
+      case 13: MenuReadADC1(btnState); break;
+      case 14: MenuResetSettings(btnState); break;
+      case 15: MenuExit(btnState);  
     }
 
     if (menu_state == 0) { // leaving

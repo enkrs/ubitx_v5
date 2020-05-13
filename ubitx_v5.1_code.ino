@@ -177,6 +177,7 @@ char vfo_active;
 int cw_delay_time;
 char is_usb;
 char keyer_control;
+char tx_inhibit;
 
 // TODO: can we live with only one RIT variable?
 unsigned long frequency, rit_rx_frequency, rit_tx_frequency;  //frequency is the current frequency on the dial
@@ -283,7 +284,8 @@ void SetFrequency(unsigned long f) {
  * CW offest is calculated as lower than the operating frequency when in LSB mode, and vice versa in USB mode
  */
 void StartTx(char tx_mode) {
-  digitalWrite(TX_RX, 1);
+  if (!tx_inhibit)
+    digitalWrite(TX_RX, 1);
   in_tx = 1;
   
   if (shift_mode == SHIFT_RIT) { // rit
@@ -295,7 +297,7 @@ void StartTx(char tx_mode) {
     SetFrequency(frequency);
   }
 
-  if (tx_mode == TX_CW) {
+  if (tx_mode == TX_CW && !tx_inhibit) {
     //turn off the second local oscillator and the bfo
     si5351bx_setfreq(0, 0);
     si5351bx_setfreq(1, 0);
@@ -531,6 +533,7 @@ void InitSettings() {
   // TODO - EEPROM
   first_if = 45005000L; // should be eeprom
   cw_delay_time = 60;
+  tx_inhibit = 0;
 
   // calculate internal variables
   vfo_active = VFO_A;
