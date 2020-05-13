@@ -87,17 +87,17 @@
 /**
  * These are the indices where these user changable settinngs are stored  in the EEPROM
  */
-#define MAGIC_NR     0x1c // (Magic nr value)
-#define MAGIC_ADDR    0  // EEPROM MAGIC NUMBER
-#define MASTER_CAL    1  // ,2,3,4 long
-#define USB_CARRIER   5  // ,6,7,8 unsigned long
-#define CW_SIDE_TONE  9  // 10,11,12 unsigned int
-#define VFO_A        13  // 14,15,16 unsigned long
-#define VFO_B        17  // 18,19,20 unsigned long
-#define CW_SPEED     21  // 22       int
-#define VFO_A_USB    23  // char
-#define VFO_B_USB    24  // char
-#define IAMBIC_KEY   25  // char 
+#define MAGIC_NR     (0x1c) // (Magic nr value)
+#define MAGIC_ADDR    (0)  // EEPROM MAGIC NUMBER
+#define MASTER_CAL    (1)  // ,2,3,4 long
+#define USB_CARRIER   (5)  // ,6,7,8 unsigned long
+#define CW_SIDE_TONE  (9)  // 10,11,12 unsigned int
+#define VFO_A        (13)  // 14,15,16 unsigned long
+#define VFO_B        (17)  // 18,19,20 unsigned long
+#define CW_SPEED     (21)  // 22       int
+#define VFO_A_USB    (23)  // char
+#define VFO_B_USB    (24)  // char
+#define IAMBIC_KEY   (25)  // char 
 
 /**
  * The uBITX is an upconnversion transceiver. The first IF is at 45 MHz.
@@ -122,8 +122,8 @@
 
 //we directly generate the CW by programming the Si5351 to the cw tx frequency, hence, both are different modes
 //these are the parameter passed to StartTx
-#define TX_SSB 0
-#define TX_CW 1
+#define TX_SSB (0)
+#define TX_CW (1)
 
 /** 
  * The Raduino board is the size of a standard 16x2 LCD panel. It has three connectors:
@@ -156,9 +156,9 @@ U8X8_SSD1306_128X64_NONAME_HW_I2C u8x8(/* reset=*/ OLED_ENABLE);
  */
 char c[30], b[30];      
 
-#define SHIFT_NONE 0
-#define SHIFT_RIT 1
-#define SHIFT_SPLIT 2
+#define SHIFT_NONE (0)
+#define SHIFT_RIT (1)
+#define SHIFT_SPLIT (2)
 
 // These variables are stored in EEPROM:
 long master_cal;
