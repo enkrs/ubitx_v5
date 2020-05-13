@@ -156,6 +156,10 @@ U8X8_SSD1306_128X64_NONAME_HW_I2C u8x8(/* reset=*/ OLED_ENABLE);
  */
 char c[30], b[30];      
 
+#define SHIFT_NONE 0
+#define SHIFT_RIT 1
+#define SHIFT_SPLIT 2
+
 // These variables are stored in EEPROM:
 long master_cal;
 unsigned long usb_carrier;
@@ -282,11 +286,11 @@ void StartTx(char tx_mode) {
   digitalWrite(TX_RX, 1);
   in_tx = 1;
   
-  if (shift_mode == 1) { // rit
+  if (shift_mode == SHIFT_RIT) { // rit
     //save the current as the rx frequency
     rit_rx_frequency = frequency;
     SetFrequency(rit_tx_frequency);
-  } else if (shift_mode == 2) { // split
+  } else if (shift_mode == SHIFT_SPLIT) { // split
     if (vfo_active == VFO_B) {
       vfo_active = VFO_A;
       is_usb = vfo_a_usb;
@@ -321,9 +325,9 @@ void StopTx() {
   digitalWrite(TX_RX, 0);           //turn off the tx
   si5351bx_setfreq(0, usb_carrier);  //set back the carrrier oscillator, cw tx switches it off
 
-  if (shift_mode == 1 ) { // rit
+  if (shift_mode == SHIFT_RIT ) { // rit
     frequency = rit_rx_frequency;
-  } else if (shift_mode == 2 ) { // split
+  } else if (shift_mode == SHIFT_SPLIT ) { // split
     if (vfo_active == VFO_B) {
       vfo_active = VFO_A;
       frequency = vfo_a;
@@ -343,7 +347,7 @@ void StopTx() {
  * what the tx frequency will be
  */
 void RitEnable(unsigned long f) {
-  shift_mode = 1;
+  shift_mode = SHIFT_RIT;
   //save the non-rit frequency back into the VFO memory
   //as RIT is a temporary shift, this is not saved to EEPROM
   rit_tx_frequency = f;
@@ -351,10 +355,20 @@ void RitEnable(unsigned long f) {
 
 // this is called by the RIT menu routine
 void RitDisable() {
-  if (shift_mode == 1) {
-    shift_mode = 0;
+  if (shift_mode == SHIFT_RIT) {
+    shift_mode = SHIFT_NONE;
     SetFrequency(rit_tx_frequency);
     UpdateDisplay();
+  }
+}
+
+void SplitEnable() {
+  shift_mode = SHIFT_SPLIT;
+}
+
+void SplitDisable() {
+  if (shift_mode == SHIFT_SPLIT) {
+    shift_mode = SHIFT_NONE;
   }
 }
 
@@ -509,7 +523,7 @@ void InitSettings() {
   // calculate internal variables
   vfo_active = VFO_A;
   is_usb = vfo_a_usb;
-  shift_mode = 0;
+  shift_mode = SHIFT_NONE;
 
    if (iambic_key == 1)
      keyer_control &= ~0x10;
@@ -584,7 +598,7 @@ void loop() {
 
   //tune only when not tranmsitting 
   if (!in_tx) {
-    if (shift_mode == 1)
+    if (shift_mode == SHIFT_RIT)
       DoRit();
     else
       DoTuning();
