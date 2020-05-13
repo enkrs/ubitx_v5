@@ -168,10 +168,9 @@ unsigned char vfo_b_usb;
 unsigned char iambic_key;
 
 unsigned long first_if;
-char split_on;  //working split, uses VFO B as the transmit frequency, (TODO NOT IMPLEMENTED YET)
+char shift_mode;  // 0 - normal, 1 - rit, 2 - split
 char vfo_active;
 int cw_delay_time;
-char rit_on;
 char is_usb;
 char keyer_control;
 
@@ -283,11 +282,11 @@ void StartTx(char tx_mode) {
   digitalWrite(TX_RX, 1);
   in_tx = 1;
   
-  if (rit_on) {
+  if (shift_mode == 1) { // rit
     //save the current as the rx frequency
     rit_rx_frequency = frequency;
     SetFrequency(rit_tx_frequency);
-  } else if (split_on == 1) {
+  } else if (shift_mode == 2) { // split
     if (vfo_active == VFO_B) {
       vfo_active = VFO_A;
       is_usb = vfo_a_usb;
@@ -322,9 +321,9 @@ void StopTx() {
   digitalWrite(TX_RX, 0);           //turn off the tx
   si5351bx_setfreq(0, usb_carrier);  //set back the carrrier oscillator, cw tx switches it off
 
-  if (rit_on) {
+  if (shift_mode == 1 ) { // rit
     frequency = rit_rx_frequency;
-  } else if (split_on == 1) {
+  } else if (shift_mode == 2 ) { // split
     if (vfo_active == VFO_B) {
       vfo_active = VFO_A;
       frequency = vfo_a;
@@ -344,17 +343,16 @@ void StopTx() {
  * what the tx frequency will be
  */
 void RitEnable(unsigned long f) {
-  rit_on = 1;
+  shift_mode = 1;
   //save the non-rit frequency back into the VFO memory
   //as RIT is a temporary shift, this is not saved to EEPROM
   rit_tx_frequency = f;
-  split_on = 0;
 }
 
 // this is called by the RIT menu routine
 void RitDisable() {
-  if (rit_on) {
-    rit_on = 0;
+  if (shift_mode == 1) {
+    shift_mode = 0;
     SetFrequency(rit_tx_frequency);
     UpdateDisplay();
   }
@@ -511,7 +509,7 @@ void InitSettings() {
   // calculate internal variables
   vfo_active = VFO_A;
   is_usb = vfo_a_usb;
-  rit_on = 0;
+  shift_mode = 0;
 
    if (iambic_key == 1)
      keyer_control &= ~0x10;
@@ -586,7 +584,7 @@ void loop() {
 
   //tune only when not tranmsitting 
   if (!in_tx) {
-    if (rit_on)
+    if (shift_mode == 1)
       DoRit();
     else
       DoTuning();

@@ -235,7 +235,7 @@ void CatReadEeprom()
       //7A  6 ? ?
       //7A  7 SPL On/Off  0 = Off, 1 = On
 
-      cat[0] = (split_on ? 0xFF : 0x7F);
+      cat[0] = (shift_mode == 2 ? 0xFF : 0x7F);
       break;
     case 0xB3 : //
       cat[0] = 0x00;
@@ -266,10 +266,10 @@ void ProcessCatCommand(char* cmd) {
       //PrintStatus(b);
       break;
     case 0x02:  //split on (TODO implementation)
-      split_on =  1;
+      shift_mode = 2;
       break;
     case 0x82:  //split off
-      split_on = 0;
+      shift_mode = 0;
       break;
     case 0x03:
       WriteFreq(frequency, response); // Put the frequency into the buffer

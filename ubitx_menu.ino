@@ -116,15 +116,15 @@ void MenuBand(int btn) {
 void MenuRitToggle(int btn) {
   if (!btn) {
     if (NeedRedraw()) {
-      PrintStatusValue("RIT", rit_on ? STR_ON : STR_OFF);
+      PrintStatusValue("RIT", shift_mode == 1 ? STR_ON : STR_OFF);
     }
     return;
   }
 
-  if (!rit_on)
-    RitEnable(frequency);
-  else
+  if (shift_mode == 1)
     RitDisable();
+  else
+    RitEnable(frequency);
 
   menu_state = 1;
 }
@@ -201,13 +201,15 @@ void MenuSidebandToggle(int btn) {
 void MenuSplitToggle(int btn) {
   if (!btn) {
     if (NeedRedraw()) {
-      PrintStatusValue("SPLIT", split_on ? STR_ON : STR_OFF);
+      PrintStatusValue("SPLIT", shift_mode == 2 ? STR_ON : STR_OFF);
     }
     return;
   }
 
-  split_on = !split_on;
-  if (split_on) rit_on = 0;
+  if (shift_mode == 2)
+    shift_mode = 0;
+  else
+    shift_mode = 2;
 
   menu_state = 1;
 }

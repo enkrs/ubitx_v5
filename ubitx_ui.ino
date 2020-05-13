@@ -61,12 +61,17 @@ void UpdateDisplay() {
   } else {
     // 123456789012345
     // ______RIT_USB_A
-    if (rit_on)
-      u8x8.draw1x2String(7, 1, "RIT");
-    else if (split_on)
-      u8x8.draw1x2String(7, 1, "SPL");
-    else
-      u8x8.draw1x2String(7, 1, "   ");
+    switch (shift_mode) {
+      case 0:
+        u8x8.draw1x2String(7, 1, "   ");
+        break;
+      case 1:
+        u8x8.draw1x2String(7, 1, "RIT");
+        break;
+      case 2:
+        u8x8.draw1x2String(7, 1, "SPL");
+        break;
+    }
     u8x8.draw1x2Glyph(10, 1, ' ');
 
     u8x8.draw1x2String(11, 1, is_usb ? "USB " : "LSB ");
