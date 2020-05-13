@@ -123,8 +123,8 @@ void MenuRitToggle(int btn) {
     return;
   }
 
-  if (rit_on == 0)
-    ritEnable(frequency);
+  if (!rit_on)
+    RitEnable(frequency);
   else
     RitDisable();
 
@@ -183,16 +183,17 @@ void MenuSidebandToggle(int btn) {
     return;
   }
 
-  if (is_usb == 1)
-    is_usb = 0;
-  else
-    is_usb = 1;
+  is_usb = !is_usb;
 
-  //Added by KD8CEC
-  if (vfo_active == VFO_B)
+  if (vfo_active == VFO_B && vfo_b_usb != is_usb) {
     vfo_b_usb = is_usb;
-  else
-    vfo_b_usb = is_usb;
+    EEPROM.put(VFO_B_USB, vfo_b_usb);
+  }
+  if (vfo_active == VFO_A && vfo_a_usb != is_usb) {
+    vfo_a_usb = is_usb;
+    EEPROM.put(VFO_A_USB, vfo_a_usb);
+  }
+  SetFrequency(frequency);
 
   menu_state = 1;
 }
@@ -207,12 +208,9 @@ void MenuSplitToggle(int btn) {
     return;
   }
 
-  if (split_on == 1) {
-    split_on = 0;
-  } else {
-    split_on = 1;
-    if (rit_on == 1) rit_on = 0;
-  }
+  split_on = !split_on;
+  if (split_on) rit_on = 0;
+
   menu_state = 1;
 }
 

@@ -338,10 +338,10 @@ void StopTx() {
 }
 
 /**
- * ritEnable is called with a frequency parameter that determines
+ * RitEnable is called with a frequency parameter that determines
  * what the tx frequency will be
  */
-void ritEnable(unsigned long f) {
+void RitEnable(unsigned long f) {
   rit_on = 1;
   //save the non-rit frequency back into the VFO memory
   //as RIT is a temporary shift, this is not saved to EEPROM
