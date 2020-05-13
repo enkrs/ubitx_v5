@@ -138,6 +138,8 @@
  * Lines used are : RESET, ENABLE, D4, D5, D6, D7 
  * We include the library and declare the configuration of the LCD panel too
  */
+#define U8X8_MAINFONT u8x8_font_amstrad_cpc_extended_u
+#define U8X8_DIGITFONT u8x8_font_profont29_2x3_n
 U8X8_SSD1306_128X64_NONAME_HW_I2C u8x8(/* reset=*/ OLED_ENABLE);
 
 
@@ -346,6 +348,7 @@ void RitEnable(unsigned long f) {
   //save the non-rit frequency back into the VFO memory
   //as RIT is a temporary shift, this is not saved to EEPROM
   rit_tx_frequency = f;
+  split_on = 0;
 }
 
 // this is called by the RIT menu routine
@@ -552,7 +555,7 @@ void setup() {
   u8x8.begin();
   // the "_f" version uses extra 1280 bytes of storage space
   // u8x8.setFont(u8x8_font_amstrad_cpc_extended_f); 
-  u8x8.setFont(u8x8_font_amstrad_cpc_extended_u); 
+  u8x8.setFont(U8X8_MAINFONT); 
   u8x8.setPowerSave(0);
 
   //we print this line so this shows up even if the raduino 

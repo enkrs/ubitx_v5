@@ -14,22 +14,30 @@
 char screen_dirty; // Used across functions to signal redrawing
 char extended_menu = 0;     //this mode of menus shows extended menus to calibrate the oscillators and choose the proper
 
-signed char knob_value_draw_right;
-
 static char NeedRedraw() {
   char ret = screen_dirty;
   screen_dirty = 0;
   return ret;
 }
 
-long int WaitKnobValueCustom(long int minimum, long int maximum, int step_size,
-                             long int initial, void (*DrawCallback)(long int)) {
+unsigned char wait_knob_right = 0;
+void DrawWaitKnobScreen(const char* title, const char *units) {
+  u8x8.clear();
+  u8x8.draw1x2String(1, 6, title);
+  wait_knob_right = 16 - strlen(units);
+  u8x8.draw1x2String(wait_knob_right, 4, units);
+  wait_knob_right--;
+}
+
+// A generic control to read variable values
+long int WaitKnobValue(long int minimum, long int maximum, long int step_size,
+                       int initial, void (*ValueCallback)(long int),
+                       unsigned char silent) {
   int knob = 0;
   long int knob_value = initial;
 
   screen_dirty = 1;
-   
-  while(!BtnDown()) {
+  while (!BtnDown()) {
     knob = EncReadSlow();
     if (knob != 0) {
       if (knob < 0) knob_value -= step_size;
@@ -40,35 +48,26 @@ long int WaitKnobValueCustom(long int minimum, long int maximum, int step_size,
       screen_dirty = 1;
     }
     if (NeedRedraw()) {
-      DrawCallback(knob_value);
+      if (ValueCallback) ValueCallback(knob_value);
+      if (!silent) {
+        ltoa(knob_value, b, 10);
+        int8_t i = wait_knob_right - strlen(b) * 2;
+        if (i > 0) {
+          u8x8.setFont(U8X8_DIGITFONT);
+          u8x8.drawString(i, 3, b);
+          u8x8.setFont(U8X8_MAINFONT);
+          while (i-- > 1) {
+            u8x8.draw1x2Glyph(i, 3, ' ');
+            u8x8.drawGlyph(i, 5, ' ');
+          }
+        }
+      }
     }
     ActiveDelay(20);
   }
   BtnWaitUp();
 
   return knob_value;
-}
-
-void KnobValueDraw(long int value) {
-  ltoa(value, b, 10);
-  int8_t i = knob_value_draw_right - strlen(b) * 2;
-  if (i > 0) {
-    u8x8.draw2x2String(i, 4, b);
-    while (i-- > 1) u8x8.draw1x2Glyph(i, 4, ' ');
-  }
-}
-
-
-// A generic control to read variable values
-long int WaitKnobValue(long int minimum, long int maximum, long int step_size,
-                  int initial, const char* title, const char *postfix) {
-  u8x8.clear();
-  u8x8.draw1x2String(1, 1, title);
-  knob_value_draw_right = 16 - strlen(postfix) * 2;
-  u8x8.draw2x2String(knob_value_draw_right, 4, postfix);
-
-  return WaitKnobValueCustom(minimum, maximum, step_size, initial,
-                             KnobValueDraw);
 }
 
 
@@ -88,9 +87,8 @@ void MenuBand(int btn) {
   int knob = 0;
 
   if (!btn) {
-    if (NeedRedraw()) {
+    if (NeedRedraw())
       PrintStatusValue(STR_BAND_SELECT, "..");
-    }
     return;
   }
 
@@ -229,7 +227,8 @@ void MenuCwSpeed(int btn) {
     return;
   }
 
-  wpm = WaitKnobValue(1, 100, 1,  wpm, "CW SPEED", STR_WPM);
+  DrawWaitKnobScreen("CW SPEED", STR_WPM);
+  wpm = WaitKnobValue(1, 100, 1,  wpm, 0, 0);
   cw_speed = 1200 / wpm;
   EEPROM.put(CW_SPEED, cw_speed);
 
@@ -296,7 +295,7 @@ void MenuSetupCarrier(int btn) {
   // usb_carrier = 11053000l;
   si5351bx_setfreq(0, usb_carrier);
   u8x8.clear();
-  u8x8.draw1x2String(1, 1, "CALIBRATE BFO");
+  u8x8.draw1x2String(1, 6, "CALIBRATE BFO");
   screen_dirty = 1;
 
   while (!BtnDown()) {
@@ -328,16 +327,9 @@ void MenuSetupCarrier(int btn) {
   menu_state = 1; 
 }
 
-void MenuSetupCwToneCallback(long int value) {
+void PreviewSidetone(long int value) {
   cw_side_tone = (int)value;
   tone(CW_TONE, cw_side_tone);
-
-  ltoa(value, b, 10); // TODO Deduplicate
-  int8_t i = knob_value_draw_right - strlen(b) * 2;
-  if (i > 0) {
-    u8x8.draw2x2String(i, 4, b);
-    while (i-- > 1) u8x8.draw1x2Glyph(i, 4, ' ');
-  }
 }
 
 void MenuSetupCwTone(int btn) {
@@ -350,15 +342,10 @@ void MenuSetupCwTone(int btn) {
     return;
   }
 
-  u8x8.clear();
-  u8x8.draw1x2String(1, 1, STR_CW_TONE);
-  knob_value_draw_right = 12;
-  u8x8.draw2x2String(knob_value_draw_right, 4, "HZ");
-
-  cw_side_tone = WaitKnobValueCustom(100, 2000, 10, cw_side_tone,
-                                     MenuSetupCwToneCallback);
+  DrawWaitKnobScreen(STR_CW_TONE, "HZ");
+  cw_side_tone = WaitKnobValue(100, 2000, 10, cw_side_tone,
+                               PreviewSidetone, 0);
   noTone(CW_TONE);
-  //save the setting
   EEPROM.put(CW_SIDE_TONE, cw_side_tone);
     
   menu_state = 1; 
@@ -374,15 +361,16 @@ void MenuSetupCwDelay(int btn) {
     return;
   }
 
-  cw_delay_time = WaitKnobValue(10, 1010, 50,  cw_delay_time, STR_CW_DELAY, "MS");
+  DrawWaitKnobScreen(STR_CW_DELAY, "MS");
+  cw_delay_time = WaitKnobValue(10, 1010, 50, cw_delay_time, 0, 0);
 
   menu_state = 1;
 }
 
-void MenuSetupKeyerCallback(long int value) {
-  u8x8.draw1x2String(4, 4, STRS_IAMBIC[value]);
+void PreviewKeyer(long int value) {
+  u8x8.draw1x2String(4, 3, STRS_IAMBIC[value]);
   for (unsigned char i = strlen(STRS_IAMBIC[value]) + 4; i <= 15; i++) {
-    u8x8.draw1x2Glyph(i, 4, ' ');
+    u8x8.draw1x2Glyph(i, 3, ' ');
   }
 }
 
@@ -393,11 +381,8 @@ void MenuSetupKeyer(int btn) {
     return;
   }
 
-  u8x8.clear();
-  u8x8.draw1x2String(1, 1, STR_CW_KEY);
-
-  iambic_key = WaitKnobValueCustom(0, 2, 1, iambic_key,
-                                   MenuSetupKeyerCallback);
+  DrawWaitKnobScreen(STR_CW_KEY, "");
+  iambic_key = WaitKnobValue(0, 2, 1, iambic_key, PreviewKeyer, 1);
   
   if (iambic_key == 1)
     keyer_control &= ~IAMBICB;

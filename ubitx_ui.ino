@@ -52,38 +52,40 @@ void PrintStatusValue(const char *c, const char *v) {
 // this builds up the top line of the display with frequency and mode
 void UpdateDisplay() {
   if (in_tx) {
-    u8x8.draw1x2Glyph(11, 0, ' ');
+    // 123456789012345
+    // ___________=TX=
+    u8x8.draw1x2String(1, 1, "           ");
     u8x8.setInverseFont(1);
-    u8x8.draw1x2String(12, 0, cw_timeout > 0 ? " CW " : " TX ");
+    u8x8.draw1x2String(12, 1, cw_timeout > 0 ? " CW " : " TX ");
     u8x8.setInverseFont(0);
   } else {
+    // 123456789012345
+    // ______RIT_USB_A
     if (rit_on)
-      u8x8.draw1x2String(11, 0, "RIT");
+      u8x8.draw1x2String(7, 1, "RIT");
+    else if (split_on)
+      u8x8.draw1x2String(7, 1, "SPL");
     else
-      u8x8.draw1x2String(11, 0, is_usb ? "USB" : "LSB");
-    u8x8.draw1x2Glyph(14, 0, ' ');
-    u8x8.draw1x2Glyph(15, 0, vfo_active == VFO_A ? 'A' : 'B');
+      u8x8.draw1x2String(7, 1, "   ");
+    u8x8.draw1x2Glyph(10, 1, ' ');
+
+    u8x8.draw1x2String(11, 1, is_usb ? "USB " : "LSB ");
+    u8x8.draw1x2Glyph(15, 1, vfo_active == VFO_A ? 'A' : 'B');
   }
 
   memset(b, 0, sizeof(b));
   ultoa(frequency, b, DEC);
 
+  u8x8.setFont(U8X8_DIGITFONT);
   //one mhz digit if less than 10 M, two digits if more
   unsigned char n = 0;
-  if (frequency < 10000000l) {
-    u8x8.draw2x2Glyph(1, 1, b[n++]);
-    u8x8.draw1x2Glyph(3, 1, '.');
-    u8x8.draw2x2Glyph(4, 1, ' '); // clear last digit in change from 10. to 9.
-  } else {
-    u8x8.draw2x2Glyph(1, 1, b[n++]);
-    u8x8.draw2x2Glyph(3, 1, b[n++]);
-    u8x8.draw1x2Glyph(5, 1, '.');
-  }
-  u8x8.draw2x2Glyph(2, 3, b[n++]);
-  u8x8.draw2x2Glyph(4, 3, b[n++]);
-  u8x8.draw2x2Glyph(6, 3, b[n++]);
-  u8x8.draw1x2Glyph(8, 3, '.');
-  u8x8.draw2x2Glyph(9, 3, b[n++]);
-  u8x8.draw2x2Glyph(11, 3, b[n++]);
-  u8x8.draw2x2Glyph(13, 3, b[n]);
+  u8x8.drawGlyph(1, 3, frequency < 10000000l ? ' ' : b[n++]);
+  u8x8.drawGlyph(3, 3, b[n++]);
+  u8x8.drawGlyph(5, 3, b[n++]);
+  u8x8.drawGlyph(7, 3, b[n++]);
+  u8x8.drawGlyph(9, 3, b[n++]);
+  // .
+  u8x8.drawGlyph(12, 3, b[n++]);
+  u8x8.drawGlyph(14, 3, b[n++]);
+  u8x8.setFont(U8X8_MAINFONT);
 }
