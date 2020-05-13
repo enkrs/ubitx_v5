@@ -291,15 +291,7 @@ void StartTx(char tx_mode) {
     rit_rx_frequency = frequency;
     SetFrequency(rit_tx_frequency);
   } else if (shift_mode == SHIFT_SPLIT) { // split
-    if (vfo_active == VFO_B) {
-      vfo_active = VFO_A;
-      is_usb = vfo_a_usb;
-      frequency = vfo_a;
-    } else if (vfo_active == VFO_A) {
-      vfo_active = VFO_B;
-      frequency = vfo_b;
-      is_usb = vfo_b_usb;        
-    }
+    VfoSwap(0);
     SetFrequency(frequency);
   }
 
@@ -328,15 +320,7 @@ void StopTx() {
   if (shift_mode == SHIFT_RIT ) { // rit
     frequency = rit_rx_frequency;
   } else if (shift_mode == SHIFT_SPLIT ) { // split
-    if (vfo_active == VFO_B) {
-      vfo_active = VFO_A;
-      frequency = vfo_a;
-      is_usb = vfo_a_usb;        
-    } else if (vfo_active == VFO_A) {
-      vfo_active = VFO_B;
-      frequency = vfo_b;
-      is_usb = vfo_b_usb;        
-    }
+    VfoSwap(0);
   }
   SetFrequency(frequency);
   UpdateDisplay();
@@ -359,6 +343,34 @@ void RitDisable() {
     shift_mode = SHIFT_NONE;
     SetFrequency(rit_tx_frequency);
     UpdateDisplay();
+  }
+}
+
+void VfoSwap(unsigned char save) {
+  if (vfo_active == VFO_A) {
+    if (vfo_a != frequency) {
+      vfo_a = frequency;
+      if (save) EEPROM.put(VFO_A, vfo_a);
+    }
+    if (vfo_a_usb != is_usb) {
+      vfo_a_usb = is_usb;
+      if (save) EEPROM.put(VFO_A_USB, vfo_a_usb);
+    }
+    vfo_active = VFO_B;
+    frequency = vfo_b;
+    is_usb = vfo_b_usb;
+  } else {
+    if (vfo_b != frequency) {
+      vfo_b = frequency;
+      if (save) EEPROM.put(VFO_B, vfo_b);
+    }
+    if (vfo_b_usb != is_usb) {
+      vfo_b_usb = is_usb;
+      if (save) EEPROM.put(VFO_B_USB, vfo_b_usb);
+    }
+    vfo_active = VFO_A;
+    frequency = vfo_a;
+    is_usb = vfo_a_usb;
   }
 }
 

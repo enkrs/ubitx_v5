@@ -139,33 +139,8 @@ void MenuVfoToggle(int btn) {
     return;
   }
 
-  if (vfo_active == VFO_B) {
-    if (vfo_b != frequency) {
-      vfo_b = frequency;
-      EEPROM.put(VFO_B, vfo_b);
-    }
-    if (vfo_b_usb != is_usb) {
-      vfo_b_usb = is_usb;
-      EEPROM.put(VFO_B_USB, vfo_b_usb);
-    }
+  VfoSwap(/* save=*/1);
 
-    vfo_active = VFO_A;
-    frequency = vfo_a;
-    is_usb = vfo_a_usb;
-  } else {
-    if (vfo_a != frequency) {
-      vfo_a = frequency;
-      EEPROM.put(VFO_A, vfo_a);
-    }
-    if (vfo_a_usb != is_usb) {
-      vfo_a_usb = is_usb;
-      EEPROM.put(VFO_A_USB, vfo_a_usb);
-    }
-
-    vfo_active = VFO_B;
-    frequency = vfo_b;
-    is_usb = vfo_b_usb;
-  }
   RitDisable();
   SetFrequency(frequency);
 
@@ -183,14 +158,6 @@ void MenuSidebandToggle(int btn) {
 
   is_usb = !is_usb;
 
-  if (vfo_active == VFO_B && vfo_b_usb != is_usb) {
-    vfo_b_usb = is_usb;
-    EEPROM.put(VFO_B_USB, vfo_b_usb);
-  }
-  if (vfo_active == VFO_A && vfo_a_usb != is_usb) {
-    vfo_a_usb = is_usb;
-    EEPROM.put(VFO_A_USB, vfo_a_usb);
-  }
   SetFrequency(frequency);
 
   menu_state = 1;
