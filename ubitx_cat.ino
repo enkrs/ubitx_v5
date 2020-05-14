@@ -8,6 +8,7 @@
  * WARNING : This is an unstable version and it has worked with fldigi, 
  * it gives time out error with WSJTX 1.8.0  
  */
+#include "ubitx_menu.h"
 
 #define CAT_RECEIVE_TIMEOUT 500
 
@@ -142,7 +143,7 @@ void CatReadEeprom()
       //5 : Memory/MTUNE select  0 = Memory, 1 = MTUNE
       //6 :
       //7 : MEM/VFO Select  0 = Memory, 1 = VFO (A or B - see bit 0)
-      cat[0] = 0x80 + (vfo_active == VFO_B ? 1 : 0);
+      cat[0] = 0x80 + (vfo_active == VFO_ACTIVE_B ? 1 : 0);
       cat[1] = 0x00;
       break;
     case 0x57 : //

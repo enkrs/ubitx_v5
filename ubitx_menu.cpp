@@ -1,3 +1,16 @@
+#include "ubitx_menu.h"
+
+#include <Arduino.h>
+#include <EEPROM.h>
+
+#include "hardware.h"
+#include "eeprom.h"
+
+#include "encoder.h"
+#include "ubitx_si5351.h"
+#include "ubitx_ui.h"
+#include "ubitx_v5.1_code.h"
+
 /** Menus
  *  The Radio menus are accessed by tapping on the function button. 
  *  - The main loop() constantly looks for a button press and calls DoMenu() when it detects
@@ -10,6 +23,8 @@
  *  - If the menu item is clicked on, then it is selected,
  *  - If the menu item is NOT clicked on, then the menu's prompt is to be displayed
  */
+
+char menu_state = 0; //set to 2 when the menu is being displayed, if a menu item sets it to zero, the menu is exited
 
 char screen_dirty; // Used across functions to signal redrawing
 char extended_menu = 0;     //this mode of menus shows extended menus to calibrate the oscillators and choose the proper
@@ -134,7 +149,7 @@ void MenuRitToggle(int btn) {
 void MenuVfoToggle(int btn) {
   if (!btn) {
     if (NeedRedraw()) {
-      PrintStatusValue("VFO", vfo_active == VFO_A ? "A" : "B");
+      PrintStatusValue("VFO", vfo_active == VFO_ACTIVE_A ? "A" : "B");
     }
     return;
   }
@@ -354,9 +369,9 @@ void MenuSetupKeyer(int btn) {
   iambic_key = WaitKnobValue(0, 2, 1, iambic_key, PreviewKeyer, 1);
   
   if (iambic_key == 1)
-    keyer_control &= ~IAMBICB;
+    keyer_control &= ~0x10; // IAMBICB bit
   if (iambic_key == 2)
-    keyer_control |= IAMBICB;
+    keyer_control |= 0x10; // IAMBICB bit
   
   EEPROM.put(IAMBIC_KEY, iambic_key);
   

@@ -1,3 +1,10 @@
+#include "ubitx_si5351.h"
+
+#include <Arduino.h>
+#include <Wire.h>
+
+#include "ubitx_v5.1_code.h"
+
 // *************  SI5315 routines - tks Jerry Gaffke, KE7ER   ***********************
 
 // An minimalist standalone set of Si5351 routines.

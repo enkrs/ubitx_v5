@@ -2,8 +2,11 @@
  * The user interface of the ubitx consists of the encoder, the push-button on top of it
  * ....
  */
+#include "ubitx_ui.h"
 
-
+#include <Arduino.h>
+#include "hardware.h"
+#include "ubitx_v5.1_code.h"
 
 //returns 1 if the button is pressed
 char BtnDown() {
@@ -76,7 +79,7 @@ void UpdateDisplay() {
     u8x8.draw1x2Glyph(10, 1, ' ');
 
     u8x8.draw1x2String(11, 1, is_usb ? "USB " : "LSB ");
-    u8x8.draw1x2Glyph(15, 1, vfo_active == VFO_A ? 'A' : 'B');
+    u8x8.draw1x2Glyph(15, 1, vfo_active == VFO_ACTIVE_A ? 'A' : 'B');
   }
 
   memset(b, 0, sizeof(b));

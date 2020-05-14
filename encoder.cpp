@@ -1,3 +1,9 @@
+#include "encoder.h"
+
+#include <Arduino.h>
+#include "hardware.h"
+#include "eeprom.h"
+
 //Normal encoder state
 volatile char enc_count = 0;
 
