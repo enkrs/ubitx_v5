@@ -66,6 +66,7 @@
 #define PTT          (A3)
 #define ANALOG_KEYER (A6)
 #define ANALOG_V     (A7)
+// A0 A1 Are original encoder pins, also usable
 #define OLED_ENABLE  (8)
 
 /** 
@@ -619,6 +620,5 @@ void loop() {
       DoTuning();
   }
   UpdateVoltage();
-  
   CheckCat();
 }
