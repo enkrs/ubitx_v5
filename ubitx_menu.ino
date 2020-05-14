@@ -80,8 +80,8 @@ static const char* STR_CW_DELAY = "CW DELAY";
 static const char* STR_CW_TONE = "CW TONE";
 static const char* STR_CW_KEY = "CW KEY";
 static const char* STRS_IAMBIC[3] = {"STRIGHT", "IAMBIC-A", "IAMBIC-B"};
-static const char* STRS_ADC[4] = {"FBUTTON", "PTT", "KEYER", "A7"};
-static const int   PINS_ADC[4] = { FBUTTON, PTT, ANALOG_KEYER, ANALOG_SPARE};
+static const char* STRS_ADC[4] = {"FBUTTON", "PTT", "KEYER", "VOLTAGE"};
+static const int   PINS_ADC[4] = { FBUTTON, PTT, ANALOG_KEYER, ANALOG_V};
 
 void MenuBand(int btn) {
   int knob = 0;

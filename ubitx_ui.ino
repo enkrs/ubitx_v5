@@ -61,6 +61,7 @@ void UpdateDisplay() {
   } else {
     // 123456789012345
     // ______RIT_USB_A
+    //           13.7V
     switch (shift_mode) {
       case 0:
         u8x8.draw1x2String(7, 1, "   ");
@@ -93,4 +94,26 @@ void UpdateDisplay() {
   u8x8.drawGlyph(12, 3, b[n++]);
   u8x8.drawGlyph(14, 3, b[n++]);
   u8x8.setFont(U8X8_MAINFONT);
+}
+
+void UpdateVoltage() {
+  static int prev_voltage = -0;
+  // 3.7 volts were tead as 189
+  // 11.9V volts were read as 552:
+  int cur_voltage = map(analogRead(ANALOG_V), 189, 552, 37, 119);
+  if (cur_voltage < 10) {
+    u8x8.draw1x2String(11,6,"     ");
+    return;
+  }
+  if (cur_voltage != prev_voltage) {
+    prev_voltage = cur_voltage;
+    memset(b, 0, sizeof(b));
+    itoa(cur_voltage, b, DEC);
+    int n = 0;
+    u8x8.draw1x2Glyph(11,6,cur_voltage < 100 ? ' ' : b[n++]);
+    u8x8.draw1x2Glyph(12,6,b[n++]);
+    u8x8.draw1x2Glyph(13,6,'.');
+    u8x8.draw1x2Glyph(14,6,b[n++]);
+    u8x8.draw1x2Glyph(15,6,'V');
+  }
 }

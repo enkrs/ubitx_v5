@@ -65,7 +65,7 @@
 #define FBUTTON      (A2)
 #define PTT          (A3)
 #define ANALOG_KEYER (A6)
-#define ANALOG_SPARE (A7)
+#define ANALOG_V     (A7)
 #define OLED_ENABLE  (8)
 
 /** 
@@ -554,7 +554,7 @@ void InitPorts() {
   pinMode(FBUTTON, INPUT_PULLUP);
   
   pinMode(PTT, INPUT_PULLUP);
-  //pinMode(ANALOG_KEYER, INPUT_PULLUP);
+  pinMode(ANALOG_V, INPUT_PULLUP);
 
   pinMode(CW_TONE, OUTPUT);  
   digitalWrite(CW_TONE, 0);
@@ -618,6 +618,7 @@ void loop() {
     else
       DoTuning();
   }
+  UpdateVoltage();
   
   CheckCat();
 }
