@@ -3,7 +3,7 @@
 #include <Arduino.h>
 #include <Wire.h>
 
-#include "ubitx_v5.1_code.h"
+#include "ubitx.h"
 
 // *************  SI5315 routines - tks Jerry Gaffke, KE7ER   ***********************
 

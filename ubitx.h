@@ -1,7 +1,5 @@
-#ifndef UBITX_V5_1_CODE
-#define UBITX_V5_1_CODE
-
-#include <U8x8lib.h>
+#ifndef UBITX_H_
+#define UBITX_H_
 
 /**
  * The uBITX is an upconnversion transceiver. The first IF is at 45 MHz.
@@ -42,9 +40,6 @@
  * Lines used are : RESET, ENABLE, D4, D5, D6, D7 
  * We include the library and declare the configuration of the LCD panel too
  */
-#define U8X8_MAINFONT u8x8_font_amstrad_cpc_extended_u
-#define U8X8_DIGITFONT u8x8_font_profont29_2x3_n
-extern U8X8_SSD1306_128X64_NONAME_HW_I2C u8x8;
 
 #define SHIFT_NONE (0)
 #define SHIFT_RIT (1)

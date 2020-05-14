@@ -7,9 +7,9 @@
 #include "eeprom.h"
 
 #include "encoder.h"
+#include "ubitx.h"
 #include "ubitx_si5351.h"
 #include "ubitx_ui.h"
-#include "ubitx_v5.1_code.h"
 
 /** Menus
  *  The Radio menus are accessed by tapping on the function button. 

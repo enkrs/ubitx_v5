@@ -28,7 +28,7 @@
 
 #include <Arduino.h>
 #include "hardware.h"
-#include "ubitx_v5.1_code.h"
+#include "ubitx.h"
 
 
 char key_down = 0;  //in cw mode, denotes the carrier is being transmitted

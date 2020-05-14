@@ -8,7 +8,13 @@
  * WARNING : This is an unstable version and it has worked with fldigi, 
  * it gives time out error with WSJTX 1.8.0  
  */
+#include "ubitx_cat.h"
+
+#include <Arduino.h>
+
+#include "ubitx.h"
 #include "ubitx_menu.h"
+#include "ubitx_ui.h"
 
 #define CAT_RECEIVE_TIMEOUT 500
 
@@ -22,6 +28,8 @@
 #define CAT_MODE_PKT            0x0C
 #define CAT_MODE_FMN            0x88
 #define ACK 0
+
+char tx_cat = 0;  //turned on if the transmitting due to a CAT command
 
 static unsigned long rx_buffer_arrive_time = 0;
 static char rx_buffer_check_count = 0;

@@ -6,7 +6,9 @@
 
 #include <Arduino.h>
 #include "hardware.h"
-#include "ubitx_v5.1_code.h"
+#include "ubitx.h"
+
+U8X8_SSD1306_128X64_NONAME_HW_I2C u8x8(/* reset=*/ OLED_ENABLE);
 
 //returns 1 if the button is pressed
 char BtnDown() {
