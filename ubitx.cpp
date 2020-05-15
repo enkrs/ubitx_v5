@@ -36,6 +36,7 @@
 #include <Arduino.h>
 #include <Wire.h>
 #include <EEPROM.h>
+#include <TaskSchedulerDeclarations.h>
 
 #include "hardware.h"
 #include "eeprom.h"
@@ -47,6 +48,8 @@
 #include "ubitx_si5351.h"
 #include "ubitx_ui.h"
 
+
+Scheduler scheduler;
 
 /**
  * The Arduino, unlike C/C++ on a regular computer with gigabytes of RAM, has very little memory.
@@ -375,6 +378,27 @@ void DoRit() {
   }
 }
 
+/**
+ * Master task loop, checks for ptt, tuning, menu
+ */
+void masterLoop() {
+  CwKeyer(); 
+  if (!tx_cat) CheckPtt();
+  CheckButton();
+
+  //tune only when not tranmsitting 
+  if (!in_tx) {
+    if (shift_mode == SHIFT_RIT)
+      DoRit();
+    else
+      DoTuning();
+  }
+  UpdateVoltage();
+  CheckCat();
+}
+
+Task master(TASK_IMMEDIATE, TASK_FOREVER, &masterLoop);
+
 void ResetSettings() {
   master_cal = 154117;
   usb_carrier = 11056273l;
@@ -500,23 +524,12 @@ void setup() {
   frequency = vfo_a;
   SetFrequency(vfo_a);
   UpdateDisplay();
+
+  scheduler.addTask(master);
+  master.enable();
 }
 
-/**
- * The loop checks for key_down, ptt, function button and tuning.
- */
 void loop() { 
-  CwKeyer(); 
-  if (!tx_cat) CheckPtt();
-  CheckButton();
-
-  //tune only when not tranmsitting 
-  if (!in_tx) {
-    if (shift_mode == SHIFT_RIT)
-      DoRit();
-    else
-      DoTuning();
-  }
-  UpdateVoltage();
-  CheckCat();
+  scheduler.execute();
 }
+
