@@ -1,10 +1,8 @@
 #include "ubitx_menu.h"
 
 #include <Arduino.h>
-#include <EEPROM.h>
 
 #include "hardware.h"
-#include "eeprom.h"
 
 #include "encoder.h"
 #include "ubitx.h"
@@ -176,9 +174,10 @@ void MenuSidebandToggle(int btn) {
     return;
   }
 
-  is_usb = !is_usb;
-
-  SetFrequency(frequency);
+  if (is_usb)
+    SidebandSet(0);
+  else
+    SidebandSet(1);
 
   menu_state = 1;
 }
@@ -218,8 +217,8 @@ void MenuCwSpeed(int btn) {
 
   DrawWaitKnobScreen("CW SPEED", STR_WPM);
   wpm = WaitKnobValue(1, 100, 1,  wpm, 0, 0);
-  cw_speed = 1200 / wpm;
-  EEPROM.put(CW_SPEED, cw_speed);
+
+  CwSpeedSet(1200 / wpm);
 
   menu_state = 1;
 }
@@ -273,6 +272,7 @@ void MenuSetupCalibration(int btn) {
 
 void MenuSetupCarrier(int btn) {
   int knob = 0;
+  unsigned long long carrier;
 
   if (!btn) {
     if (NeedRedraw()) {
@@ -282,7 +282,8 @@ void MenuSetupCarrier(int btn) {
   }
 
   // usb_carrier = 11053000l;
-  si5351bx_setfreq(0, usb_carrier);
+  carrier = usb_carrier;
+  si5351bx_setfreq(0, carrier);
   u8x8.clear();
   u8x8.draw1x2String(1, 6, "CALIBRATE BFO");
   screen_dirty = 1;
@@ -291,16 +292,18 @@ void MenuSetupCarrier(int btn) {
     knob = EncRead();
 
     if (knob != 0) {
-      usb_carrier += knob;
-      if (usb_carrier < 11000000) usb_carrier = 11000000;
-      if (usb_carrier > 11099999) usb_carrier = 11099999;
+      carrier += knob;
+      if (carrier < 11000000) carrier = 11000000;
+      if (carrier > 11099999) carrier = 11099999;
 
-      si5351bx_setfreq(0, usb_carrier);
-      SetFrequency(frequency);  // This was not in original. Why?
+      si5351bx_setfreq(0, carrier);
+      // Not possible to set frequency ast the usb_carrier is not yet
+      // changed. only previewed.
+      // SetFrequency(frequency);
       screen_dirty = 1;
     }
     if (NeedRedraw()) {
-      ultoa(usb_carrier, c, DEC);
+      ultoa(carrier, c, DEC);
       PrintLine(4, c);
     }
     ActiveDelay(20);
@@ -308,17 +311,13 @@ void MenuSetupCarrier(int btn) {
   BtnWaitUp();
   u8x8.clear();
 
-  EEPROM.put(USB_CARRIER, usb_carrier);
-
-  si5351bx_setfreq(0, usb_carrier);
-  SetFrequency(frequency);
+  SetUsbCarrier(usb_carrier);
 
   menu_state = 1;
 }
 
 void PreviewSidetone(long int value) {
-  cw_side_tone = value;
-  tone(CW_TONE, cw_side_tone);
+  tone(CW_TONE, value);
 }
 
 void MenuSetupCwTone(int btn) {
@@ -332,10 +331,10 @@ void MenuSetupCwTone(int btn) {
   }
 
   DrawWaitKnobScreen(STR_CW_TONE, "HZ");
-  cw_side_tone = WaitKnobValue(100, 2000, 10, cw_side_tone,
-                               PreviewSidetone, 0);
+  unsigned int tone = WaitKnobValue(100, 2000, 10, cw_side_tone,
+                                    PreviewSidetone, 0);
   noTone(CW_TONE);
-  EEPROM.put(CW_SIDE_TONE, cw_side_tone);
+  CwToneSet(tone);
 
   menu_state = 1;
 }
@@ -351,6 +350,7 @@ void MenuSetupCwDelay(int btn) {
   }
 
   DrawWaitKnobScreen(STR_CW_DELAY, "MS");
+  // TODO MOVE to ubitx.cpp
   cw_delay_time = WaitKnobValue(10, 1010, 50, cw_delay_time, 0, 0);
 
   menu_state = 1;
@@ -371,14 +371,8 @@ void MenuSetupKeyer(int btn) {
   }
 
   DrawWaitKnobScreen(STR_CW_KEY, "");
-  iambic_key = WaitKnobValue(0, 2, 1, iambic_key, PreviewKeyer, 1);
 
-  if (iambic_key == 1)
-    keyer_control &= ~0x10;  // IAMBICB bit
-  if (iambic_key == 2)
-    keyer_control |= 0x10;  // IAMBICB bit
-
-  EEPROM.put(IAMBIC_KEY, iambic_key);
+  IambicKeySet(WaitKnobValue(0, 2, 1, iambic_key, PreviewKeyer, 1));
 
   menu_state = 1;
 }

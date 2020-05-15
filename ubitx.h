@@ -23,7 +23,7 @@
 #define HIGHEST_FREQ (30000000l)
 
 //we directly generate the CW by programming the Si5351 to the cw tx frequency, hence, both are different modes
-//these are the parameter passed to StartTx
+//these are the parameter passed to TxStart
 #define TX_SSB (0)
 #define TX_CW (1)
 
@@ -68,16 +68,21 @@ extern unsigned long frequency;
 extern char in_tx;
 extern unsigned long cw_timeout;
 
-void StartTx(char tx_mode);
-void StopTx();
 
 void ActiveDelay(unsigned int delay_by);
 
-void RitEnable(unsigned long f);
 void RitDisable();
-void SplitEnable();
-void SplitDisable();
-void VfoSwap(unsigned char save);
+void RitEnable(unsigned long f);
+void CwSpeedSet(unsigned int wpm);
+void CwToneSet(unsigned int tone);
 void SetFrequency(unsigned long f);
+void SetUsbCarrier(unsigned long long carrier);
+void SidebandSet(char usb);
+void IambicKeySet(unsigned char key);
+void SplitDisable();
+void SplitEnable();
+void TxStart(char tx_mode);
+void TxStop();
+void VfoSwap(unsigned char save);
 
 #endif  // UBITX_H_

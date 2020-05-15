@@ -272,7 +272,7 @@ void ProcessCatCommand(char* cmd) {
       if (!in_tx) {
         response[0] = 0;
         tx_cat = 1;
-        StartTx(TX_SSB);
+        TxStart(TX_SSB);
         UpdateDisplay();
       } else {
         response[0] = 0xf0;
@@ -282,7 +282,7 @@ void ProcessCatCommand(char* cmd) {
       break;
     case 0x88:  // PTT OFF
       if (in_tx) {
-        StopTx();
+        TxStop();
         tx_cat = 0;
       }
       response[0] = 0;

@@ -150,7 +150,7 @@ void CwKeyerIambic(void) {
         } else {
           if (0 < cw_timeout && cw_timeout < millis()) {
             cw_timeout = 0;
-            StopTx();
+            TxStop();
           }
           return;
         }
@@ -178,7 +178,7 @@ void CwKeyerIambic(void) {
           
           key_down = 0;
           cw_timeout = millis() + cw_delay_time * 10;
-          StartTx(TX_CW);
+          TxStart(TX_CW);
         }
         ktimer += millis();  // set ktimer to interval end time
         keyer_control &= ~(DIT_L + DAH_L);  // clear both paddle latch bits
@@ -222,7 +222,7 @@ void CwKeyerStraight(void) {
         
         key_down = 0;
         cw_timeout = millis() + cw_delay_time * 10;
-        StartTx(TX_CW);
+        TxStart(TX_CW);
       }
       CwKeydown();
       
@@ -234,7 +234,7 @@ void CwKeyerStraight(void) {
       if (0 < cw_timeout && cw_timeout < millis()) {
         cw_timeout = 0;
         key_down = 0;
-        StopTx();
+        TxStop();
       }
       return;                   //Tx stop control by Main Loop
     }

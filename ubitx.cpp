@@ -180,12 +180,12 @@ void SetFrequency(unsigned long f) {
 }
 
 /**
- * StartTx is called by the PTT, cw keyer and CAT protocol to
+ * TxStart is called by the PTT, cw keyer and CAT protocol to
  * put the uBitx in tx mode. It takes care of rit settings, sideband settings
  * Note: In cw mode, doesnt key the radio, only puts it in tx mode
  * CW offest is calculated as lower than the operating frequency when in LSB mode, and vice versa in USB mode
  */
-void StartTx(char tx_mode) {
+void TxStart(char tx_mode) {
   if (!tx_inhibit)
     digitalWrite(TX_RX, 1);
   in_tx = 1;
@@ -215,7 +215,7 @@ void StartTx(char tx_mode) {
   UpdateDisplay();
 }
 
-void StopTx() {
+void TxStop() {
   in_tx = 0;
 
   digitalWrite(TX_RX, 0);           //turn off the tx
@@ -241,13 +241,44 @@ void RitEnable(unsigned long f) {
   rit_tx_frequency = f;
 }
 
-// this is called by the RIT menu routine
 void RitDisable() {
   if (shift_mode == SHIFT_RIT) {
     shift_mode = SHIFT_NONE;
     SetFrequency(rit_tx_frequency);
     UpdateDisplay();
   }
+}
+
+void CwSpeedSet(unsigned int speed) {
+  if (speed != cw_speed) {
+    EEPROM.put(CW_SPEED, speed);
+  }
+  cw_speed = speed;
+}
+
+void CwToneSet(unsigned int tone) {
+  if (tone != cw_side_tone) {
+    EEPROM.put(CW_SIDE_TONE, tone);
+  }
+  cw_side_tone = tone;
+}
+
+void IambicKeySet(unsigned char key) {
+  if (key != iambic_key) {
+    EEPROM.put(IAMBIC_KEY, key);
+  }
+
+  iambic_key = key;
+  if (iambic_key == 1)
+    keyer_control &= ~0x10;  // IAMBICB bit
+  if (iambic_key == 2)
+    keyer_control |= 0x10;  // IAMBICB bit
+}
+
+
+void SidebandSet(char usb) {
+  is_usb = usb;
+  SetFrequency(frequency);
 }
 
 void VfoSwap(unsigned char save) {
@@ -288,6 +319,16 @@ void SplitDisable() {
   }
 }
 
+void SetUsbCarrier(unsigned long long carrier) {
+  if (carrier != usb_carrier) {
+    EEPROM.put(USB_CARRIER, carrier);
+  }
+  usb_carrier = carrier;
+
+  si5351bx_setfreq(0, usb_carrier);
+  SetFrequency(frequency);
+}
+
 /**
  * Basic User Interface Routines. These check the front panel for any activity
  */
@@ -304,12 +345,12 @@ void CheckPtt() {
     return;
     
   if (digitalRead(PTT) == LOW && in_tx == 0) {
-    StartTx(TX_SSB);
+    TxStart(TX_SSB);
     ActiveDelay(50); //debounce the PTT
   }
 	
   if (digitalRead(PTT) == HIGH && in_tx == 1)
-    StopTx();
+    TxStop();
 }
 
 void CheckButton() {
