@@ -4,7 +4,7 @@
 /**
  * These are the indices where these user changable settinngs are stored  in the EEPROM
  */
-#define MAGIC_NR     (0x1c) // (Magic nr value)
+#define MAGIC_NR   (0x1c)  // (Magic nr value)
 #define MAGIC_ADDR    (0)  // EEPROM MAGIC NUMBER
 #define MASTER_CAL    (1)  // ,2,3,4 long
 #define USB_CARRIER   (5)  // ,6,7,8 unsigned long
