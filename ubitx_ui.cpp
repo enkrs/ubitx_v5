@@ -10,7 +10,7 @@
 
 U8X8_SSD1306_128X64_NONAME_HW_I2C u8x8(/* reset=*/ OLED_ENABLE);
 
-//returns 1 if the button is pressed
+// returns 1 if the button is pressed
 char BtnDown() {
   if (digitalRead(FBUTTON) == HIGH)
     return 0;
@@ -24,7 +24,7 @@ void BtnWaitUp() {
   ActiveDelay(50);
 }
 
-// The generic routine to display one line on the LCD 
+// The generic routine to display one line on the LCD
 void PrintLine(char linenmbr, const char *c) {
   if (c[0] == 0) {
     u8x8.clearLine(linenmbr);
@@ -34,7 +34,8 @@ void PrintLine(char linenmbr, const char *c) {
 
   u8x8.draw1x2String(1, linenmbr, c);
 
-  for (unsigned char i = strlen(c); i < 15; i++) { // add white spaces until the end of the 16 characters line is reached
+  // add white spaces until the end of the 16 characters line is reached
+  for (unsigned char i = strlen(c); i < 15; i++) {
     u8x8.draw1x2Glyph(i + 1, linenmbr, ' ');
   }
 }
@@ -47,9 +48,7 @@ void PrintStatus(const char *c) {
 void PrintStatusValue(const char *c, const char *v) {
   u8x8.draw1x2String(1, 6, c);
   u8x8.draw1x2String(15 - strlen(v) + 1, 6, v);
-  // 0123456789012345
-  // X[-5-]xxxx[-6--]
-  for (unsigned char i = strlen(c) + 1; i <= 15 - strlen(v); i++) { // add white spaces until the end of the 16 characters line is reached
+  for (unsigned char i = strlen(c) + 1; i <= 15 - strlen(v); i++) {
     u8x8.draw1x2Glyph(i, 6, ' ');
   }
 }
@@ -88,7 +87,7 @@ void UpdateDisplay() {
   ultoa(frequency, b, DEC);
 
   u8x8.setFont(U8X8_DIGITFONT);
-  //one mhz digit if less than 10 M, two digits if more
+  // one mhz digit if less than 10 M, two digits if more
   unsigned char n = 0;
   u8x8.drawGlyph(1, 3, frequency < 10000000l ? ' ' : b[n++]);
   u8x8.drawGlyph(3, 3, b[n++]);
@@ -107,7 +106,7 @@ void UpdateVoltage() {
   // 11.9V volts were read as 552:
   int cur_voltage = map(analogRead(ANALOG_V), 189, 552, 37, 119);
   if (cur_voltage < 10) {
-    u8x8.draw1x2String(11,6,"     ");
+    u8x8.draw1x2String(11, 6, "     ");
     return;
   }
   if (cur_voltage != prev_voltage) {
@@ -115,10 +114,10 @@ void UpdateVoltage() {
     memset(b, 0, sizeof(b));
     itoa(cur_voltage, b, DEC);
     int n = 0;
-    u8x8.draw1x2Glyph(11,6,cur_voltage < 100 ? ' ' : b[n++]);
-    u8x8.draw1x2Glyph(12,6,b[n++]);
-    u8x8.draw1x2Glyph(13,6,'.');
-    u8x8.draw1x2Glyph(14,6,b[n++]);
-    u8x8.draw1x2Glyph(15,6,'V');
+    u8x8.draw1x2Glyph(11, 6, cur_voltage < 100 ? ' ' : b[n++]);
+    u8x8.draw1x2Glyph(12, 6, b[n++]);
+    u8x8.draw1x2Glyph(13, 6, '.');
+    u8x8.draw1x2Glyph(14, 6, b[n++]);
+    u8x8.draw1x2Glyph(15, 6, 'V');
   }
 }

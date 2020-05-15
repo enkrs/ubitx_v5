@@ -15,4 +15,4 @@ void PrintStatusValue(const char *c, const char *v);
 void UpdateDisplay();
 void UpdateVoltage();
 
-#endif
+#endif  // UBITX_UI_H_

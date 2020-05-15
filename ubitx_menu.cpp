@@ -24,10 +24,15 @@
  *  - If the menu item is NOT clicked on, then the menu's prompt is to be displayed
  */
 
-char menu_state = 0; //set to 2 when the menu is being displayed, if a menu item sets it to zero, the menu is exited
+// Set to 2 when the menu is being displayed, if a menu item sets it to zero,
+// the menu is exited.
+char menu_state = 0;
 
-char screen_dirty; // Used across functions to signal redrawing
-char extended_menu = 0;     //this mode of menus shows extended menus to calibrate the oscillators and choose the proper
+char screen_dirty;  // Used across functions to signal redrawing
+
+// This mode of menus shows extended menus to calibrate the oscillators and
+// choose the proper
+char extended_menu = 0;
 
 static char NeedRedraw() {
   char ret = screen_dirty;
@@ -145,7 +150,7 @@ void MenuRitToggle(int btn) {
 }
 
 
-//Menu #3
+// Menu #3
 void MenuVfoToggle(int btn) {
   if (!btn) {
     if (NeedRedraw()) {
@@ -178,8 +183,8 @@ void MenuSidebandToggle(int btn) {
   menu_state = 1;
 }
 
-//Split communication using VFOA and VFOB by KD8CEC
-//Menu #5
+// Split communication using VFOA and VFOB by KD8CEC
+// Menu #5
 void MenuSplitToggle(int btn) {
   if (!btn) {
     if (NeedRedraw()) {
@@ -200,7 +205,7 @@ void MenuCwSpeed(int btn) {
   int wpm;
 
   wpm = 1200 / cw_speed;
-     
+
   if (!btn) {
     if (NeedRedraw()) {
       itoa(wpm, b, 10);
@@ -263,12 +268,12 @@ void MenuSetupCalibration(int btn) {
   u8x8.draw1x2String(1, 4, "NOT IMPLEMENTED");
   ActiveDelay(2000);
   menu_state = 1;
-  //calibrateClock();
+  // calibrateClock();
 }
 
 void MenuSetupCarrier(int btn) {
   int knob = 0;
-   
+
   if (!btn) {
     if (NeedRedraw()) {
       PrintStatus("CAL BFO");
@@ -289,9 +294,9 @@ void MenuSetupCarrier(int btn) {
       usb_carrier += knob;
       if (usb_carrier < 11000000) usb_carrier = 11000000;
       if (usb_carrier > 11099999) usb_carrier = 11099999;
-      
+
       si5351bx_setfreq(0, usb_carrier);
-      SetFrequency(frequency); // This was not in original. Why?
+      SetFrequency(frequency);  // This was not in original. Why?
       screen_dirty = 1;
     }
     if (NeedRedraw()) {
@@ -304,15 +309,15 @@ void MenuSetupCarrier(int btn) {
   u8x8.clear();
 
   EEPROM.put(USB_CARRIER, usb_carrier);
-  
-  si5351bx_setfreq(0, usb_carrier);          
-  SetFrequency(frequency);    
 
-  menu_state = 1; 
+  si5351bx_setfreq(0, usb_carrier);
+  SetFrequency(frequency);
+
+  menu_state = 1;
 }
 
 void PreviewSidetone(long int value) {
-  cw_side_tone = (int)value;
+  cw_side_tone = value;
   tone(CW_TONE, cw_side_tone);
 }
 
@@ -331,8 +336,8 @@ void MenuSetupCwTone(int btn) {
                                PreviewSidetone, 0);
   noTone(CW_TONE);
   EEPROM.put(CW_SIDE_TONE, cw_side_tone);
-    
-  menu_state = 1; 
+
+  menu_state = 1;
 }
 
 void MenuSetupCwDelay(int btn) {
@@ -367,15 +372,15 @@ void MenuSetupKeyer(int btn) {
 
   DrawWaitKnobScreen(STR_CW_KEY, "");
   iambic_key = WaitKnobValue(0, 2, 1, iambic_key, PreviewKeyer, 1);
-  
+
   if (iambic_key == 1)
-    keyer_control &= ~0x10; // IAMBICB bit
+    keyer_control &= ~0x10;  // IAMBICB bit
   if (iambic_key == 2)
-    keyer_control |= 0x10; // IAMBICB bit
-  
+    keyer_control |= 0x10;  // IAMBICB bit
+
   EEPROM.put(IAMBIC_KEY, iambic_key);
-  
-  menu_state = 1;  
+
+  menu_state = 1;
 }
 
 void MenuTxToggle(int btn) {
@@ -398,7 +403,7 @@ void MenuReadADC1(int btn) {
   static unsigned char selected = 0;
   static int last_adc;
   int adc;
-  
+
   if (btn) {
     selected = (selected + 1) % 4;
     screen_dirty = 1;
@@ -424,16 +429,16 @@ void MenuResetSettings(int btn) {
   u8x8.clear();
   PrintLine(2, "EEPROM RESET");
   PrintLine(4, "TURN OFF POWER");
-  while (1) {};
+  while (1) {}
 }
 
 void DoMenu() {
   int select = 0, active = -1, btnState;
 
   BtnWaitUp();
-  
+
   menu_state = 2;
-  
+
   while (menu_state) {
     btnState = BtnDown();
     if (btnState)
@@ -447,9 +452,9 @@ void DoMenu() {
     if (select < 0)
       select = 0;
 
-    if (menu_state == 1) { // request to close menu
+    if (menu_state == 1) {  // request to close menu
       menu_state = 0;
-      btnState = 0; // draw menu without pressed button one last time
+      btnState = 0;  // draw menu without pressed button one last time
       screen_dirty = 1;
       u8x8.setInverseFont(1);
     }
@@ -482,10 +487,10 @@ void DoMenu() {
       case 12: MenuTxToggle(btnState); break;
       case 13: MenuReadADC1(btnState); break;
       case 14: MenuResetSettings(btnState); break;
-      case 15: MenuExit(btnState);  
+      case 15: MenuExit(btnState);
     }
 
-    if (menu_state == 0) { // leaving
+    if (menu_state == 0) {  // leaving
       u8x8.setInverseFont(0);
       ActiveDelay(300);
     }
