@@ -270,10 +270,15 @@ void MenuSetupCalibration(int btn) {
   // calibrateClock();
 }
 
-void MenuSetupCarrier(int btn) {
-  int knob = 0;
-  unsigned long long carrier;
+void PreviewCarrier(long int adjust) {
+  unsigned long long carrier = 11000000 + adjust;
+  si5351bx_setfreq(0, carrier);
+  ultoa(carrier, c, DEC);
+  PrintLine(4, c);
+}
 
+void MenuSetupCarrier(int btn) {
+  unsigned long long carrier;
   if (!btn) {
     if (NeedRedraw()) {
       PrintStatus("CAL BFO");
@@ -281,38 +286,11 @@ void MenuSetupCarrier(int btn) {
     return;
   }
 
-  // usb_carrier = 11053000l;
-  carrier = usb_carrier;
-  si5351bx_setfreq(0, carrier);
-  u8x8.clear();
-  u8x8.draw1x2String(1, 6, "CALIBRATE BFO");
-  screen_dirty = 1;
-
-  while (!BtnDown()) {
-    knob = EncRead();
-
-    if (knob != 0) {
-      carrier += knob;
-      if (carrier < 11000000) carrier = 11000000;
-      if (carrier > 11099999) carrier = 11099999;
-
-      si5351bx_setfreq(0, carrier);
-      // Not possible to set frequency ast the usb_carrier is not yet
-      // changed. only previewed.
-      // SetFrequency(frequency);
-      screen_dirty = 1;
-    }
-    if (NeedRedraw()) {
-      ultoa(carrier, c, DEC);
-      PrintLine(4, c);
-    }
-    ActiveDelay(20);
-  }
-  BtnWaitUp();
-  u8x8.clear();
-
-  SetUsbCarrier(usb_carrier);
-
+  DrawWaitKnobScreen("CALIBRATE BFO", "");
+  // Values from 11000000 to 11099999
+  carrier = 11000000 + WaitKnobValue(0, 99999, 1, usb_carrier - 11000000,
+                                     PreviewCarrier, 1);
+  SetUsbCarrier(carrier);
   menu_state = 1;
 }
 
