@@ -5,5 +5,5 @@ void InitEncoder(void);
 int EncRead();
 int EncReadSlow();
 
-#endif // ENCODER_H_
+#endif  // ENCODER_H_
 

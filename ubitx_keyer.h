@@ -3,4 +3,4 @@
 
 void CwKeyer(void);
 
-#endif
+#endif  // UBITX_KEYER_H_

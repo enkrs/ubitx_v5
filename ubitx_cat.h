@@ -5,4 +5,4 @@ extern char tx_cat;
 
 void CheckCat();
 
-#endif
+#endif  // UBITX_CAT_H_

@@ -80,4 +80,4 @@ void SplitDisable();
 void VfoSwap(unsigned char save);
 void SetFrequency(unsigned long f);
 
-#endif
+#endif  // UBITX_H_

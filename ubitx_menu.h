@@ -5,4 +5,4 @@ void DoMenu();
 void MenuResetSettings(int btn);
 void MenuVfoToggle(int btn);
 
-#endif
+#endif  // UBITX_MENU_H_

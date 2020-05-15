@@ -5,4 +5,4 @@ void si5351bx_setfreq(unsigned char clknum, unsigned long fout);
 
 void InitOscillators();
 
-#endif
+#endif  // UBITX_SI5351_H_

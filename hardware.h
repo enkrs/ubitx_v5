@@ -52,5 +52,4 @@
 #define CW_TONE  (6)
 #define TX_RX    (7)
 
-
-#endif
+#endif  // HARDWARE_H_

@@ -17,5 +17,5 @@
 #define IAMBIC_KEY   (25)  // char 
 
 
-#endif
+#endif  // EEPROM_H_
 
