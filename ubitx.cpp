@@ -196,7 +196,6 @@ void TxStart(char tx_mode) {
     SetFrequency(rit_tx_frequency);
   } else if (shift_mode == SHIFT_SPLIT) { // split
     VfoSwap(0);
-    SetFrequency(frequency);
   }
 
   if (tx_mode == TX_CW && !tx_inhibit) {
@@ -307,6 +306,8 @@ void VfoSwap(unsigned char save) {
     frequency = vfo_a;
     is_usb = vfo_a_usb;
   }
+  RitDisable();
+  SetFrequency(frequency);
 }
 
 void SplitEnable() {
@@ -468,6 +469,11 @@ void ResetSettings() {
 
   char magicNr = MAGIC_NR;
   EEPROM.put(MAGIC_ADDR, magicNr);
+
+  u8x8.clear();
+  PrintLine(2, "EEPROM RESET");
+  PrintLine(4, "TURN OFF POWER");
+  while (1) {}
 }
 
 /**
@@ -481,7 +487,6 @@ void InitSettings() {
   EEPROM.get(MAGIC_ADDR, magicNr);
   if (magicNr != MAGIC_NR) {
     ResetSettings();
-    u8x8.draw1x2String(1, 6, "EEPROM RESET   ");
   } else {
     EEPROM.get(MASTER_CAL, master_cal);
     EEPROM.get(USB_CARRIER, usb_carrier);
@@ -556,9 +561,9 @@ void setup() {
 
   InitSettings();
   InitPorts();     
-  if (BtnDown()) {
-    MenuResetSettings(1);
-  }
+  if (BtnDown())
+    ResetSettings();
+
   InitEncoder();
   InitOscillators();
 

@@ -68,7 +68,6 @@ extern unsigned long frequency;
 extern char in_tx;
 extern unsigned long cw_timeout;
 
-
 void ActiveDelay(unsigned int delay_by);
 
 void RitDisable();
@@ -84,5 +83,6 @@ void SplitEnable();
 void TxStart(char tx_mode);
 void TxStop();
 void VfoSwap(unsigned char save);
+void ResetSettings();
 
 #endif  // UBITX_H_

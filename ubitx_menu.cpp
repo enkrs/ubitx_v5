@@ -159,9 +159,6 @@ void MenuVfoToggle(int btn) {
 
   VfoSwap(/* save=*/1);
 
-  RitDisable();
-  SetFrequency(frequency);
-
   menu_state = 1;
 }
 
@@ -389,7 +386,6 @@ void MenuReadADC1(int btn) {
   ActiveDelay(100);
 }
 
-extern void ResetSettings();
 void MenuResetSettings(int btn) {
   if (!btn) {
     if (NeedRedraw())
@@ -398,10 +394,6 @@ void MenuResetSettings(int btn) {
   }
 
   ResetSettings();
-  u8x8.clear();
-  PrintLine(2, "EEPROM RESET");
-  PrintLine(4, "TURN OFF POWER");
-  while (1) {}
 }
 
 void DoMenu() {

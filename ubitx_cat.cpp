@@ -292,7 +292,7 @@ void ProcessCatCommand(char* cmd) {
     case 0x81:
       // toggle the VFOs
       response[0] = 0;
-      MenuVfoToggle(1);  // '1' forces it to change the VFO
+      VfoSwap(1);
       Serial.write(response, 1);
       UpdateDisplay();
       break;
