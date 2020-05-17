@@ -1,8 +1,9 @@
 #ifndef UBITX_CAT_H_
 #define UBITX_CAT_H_
 
-extern char tx_cat;
+#include <TaskSchedulerDeclarations.h>
 
-void CheckCat();
+extern char tx_cat;
+extern Task cat_control;
 
 #endif  // UBITX_CAT_H_

@@ -334,6 +334,9 @@ void ProcessCatCommand(char* cmd) {
   inside_cat = 0;
 }
 
+// cat_contral task runs ChceckCat() over and over again
+// orchestrated by scheduler in ubitx.cpp
+
 void CheckCat() {
   unsigned char i;
 
@@ -369,3 +372,5 @@ void CheckCat() {
   ProcessCatCommand(cat);
   inside_cat = 0;
 }
+
+Task cat_control(TASK_IMMEDIATE, TASK_FOREVER, &CheckCat);

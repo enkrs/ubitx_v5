@@ -27,6 +27,7 @@
 #include "ubitx_keyer.h"
 
 #include <Arduino.h>
+#include <TaskSchedulerDeclarations.h>
 #include "hardware.h"
 #include "ubitx.h"
 
@@ -132,7 +133,7 @@ char UpdatePaddleLatch(char isUpdateKeyState) {
 // New logic, by RON
 // modified by KD8CEC
 ******************************************************************************/
-void CwKeyerIambic(void) {
+void CwKeyerIambic() {
   char tmp_keyer_control = 0;
 
   last_paddle = 0;
@@ -212,7 +213,7 @@ void CwKeyerIambic(void) {
   }
 }
 
-void CwKeyerStraight(void) {
+void CwKeyerStraight() {
   while(1) {
     if (UpdatePaddleLatch(0) == DIT_L) {
       // if we are here, it is only because the key is pressed
@@ -242,9 +243,9 @@ void CwKeyerStraight(void) {
   }
 }
 
-void CwKeyer(void) {
+void CwKeyer() {
   if (iambic_key) CwKeyerIambic();
   else CwKeyerStraight();
 }
 
-
+Task cw_keyer(TASK_IMMEDIATE, TASK_FOREVER, &CwKeyer);

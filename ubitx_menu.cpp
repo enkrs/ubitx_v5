@@ -6,6 +6,7 @@
 
 #include "encoder.h"
 #include "ubitx.h"
+#include "ubitx_main.h"
 #include "ubitx_si5351.h"
 #include "ubitx_ui.h"
 
@@ -396,69 +397,77 @@ void MenuResetSettings(int btn) {
   ResetSettingsAndHalt();
 }
 
-void DoMenu() {
-  int select = 0, active = -1, btnState;
 
+int select, active;
+
+void MenuTaskLoop() {
+  if (menu_state == 0) { // exiting
+    master.setCallback(&MasterTask);
+    u8x8.clear();
+    UpdateDisplay();
+  }
+
+  int btnState = BtnDown();
+  if (btnState)
+    BtnWaitUp();
+
+  select += EncRead();
+  if (extended_menu && select > 159)
+    select = 159;
+  if (!extended_menu && select > 79)
+    select = 79;
+  if (select < 0)
+    select = 0;
+
+  if (menu_state == 1) {  // request to close menu
+    menu_state = 0;
+    btnState = 0;  // draw menu without pressed button one last time
+    screen_dirty = 1;
+    u8x8.setInverseFont(1);
+  }
+
+  if (select / 10 != active) {
+    active = select / 10;
+    screen_dirty = 1;
+  }
+
+  switch (active) {
+    case 0: MenuBand(btnState); break;
+    case 1: MenuRitToggle(btnState); break;
+    case 2: MenuVfoToggle(btnState); break;
+    case 3: MenuSidebandToggle(btnState); break;
+    case 4: MenuSplitToggle(btnState); break;
+    case 5: MenuCwSpeed(btnState); break;
+    case 6:
+      if (MenuSetup(btnState)) select = 70;
+      break;
+    case 7:
+      if (extended_menu)
+        MenuSetupCalibration(btnState);
+      else
+        MenuExit(btnState);
+      break;
+    case 8: MenuSetupCarrier(btnState); break;
+    case 9: MenuSetupCwTone(btnState); break;
+    case 10: MenuSetupCwDelay(btnState); break;
+    case 11: MenuSetupKeyer(btnState); break;
+    case 12: MenuTxToggle(btnState); break;
+    case 13: MenuReadADC1(btnState); break;
+    case 14: MenuResetSettings(btnState); break;
+    case 15: MenuExit(btnState);
+  }
+
+  if (menu_state == 0) {  // leaving
+    u8x8.setInverseFont(0);
+    ActiveDelay(300);
+  }
+}
+
+void MenuTaskStart() {
   BtnWaitUp();
 
   menu_state = 2;
-
-  while (menu_state) {
-    btnState = BtnDown();
-    if (btnState)
-      BtnWaitUp();
-
-    select += EncRead();
-    if (extended_menu && select > 159)
-      select = 159;
-    if (!extended_menu && select > 79)
-      select = 79;
-    if (select < 0)
-      select = 0;
-
-    if (menu_state == 1) {  // request to close menu
-      menu_state = 0;
-      btnState = 0;  // draw menu without pressed button one last time
-      screen_dirty = 1;
-      u8x8.setInverseFont(1);
-    }
-
-    if (select / 10 != active) {
-      active = select / 10;
-      screen_dirty = 1;
-    }
-
-    switch (active) {
-      case 0: MenuBand(btnState); break;
-      case 1: MenuRitToggle(btnState); break;
-      case 2: MenuVfoToggle(btnState); break;
-      case 3: MenuSidebandToggle(btnState); break;
-      case 4: MenuSplitToggle(btnState); break;
-      case 5: MenuCwSpeed(btnState); break;
-      case 6:
-        if (MenuSetup(btnState)) select = 70;
-        break;
-      case 7:
-        if (extended_menu)
-          MenuSetupCalibration(btnState);
-        else
-          MenuExit(btnState);
-        break;
-      case 8: MenuSetupCarrier(btnState); break;
-      case 9: MenuSetupCwTone(btnState); break;
-      case 10: MenuSetupCwDelay(btnState); break;
-      case 11: MenuSetupKeyer(btnState); break;
-      case 12: MenuTxToggle(btnState); break;
-      case 13: MenuReadADC1(btnState); break;
-      case 14: MenuResetSettings(btnState); break;
-      case 15: MenuExit(btnState);
-    }
-
-    if (menu_state == 0) {  // leaving
-      u8x8.setInverseFont(0);
-      ActiveDelay(300);
-    }
-  }
-  u8x8.clear();
-  UpdateDisplay();
+  select = 0;
+  active = -1;
+  master.setCallback(&MenuTaskLoop);
 }
