@@ -393,7 +393,7 @@ void MenuResetSettings(int btn) {
     return;
   }
 
-  ResetSettings();
+  ResetSettingsAndHalt();
 }
 
 void DoMenu() {

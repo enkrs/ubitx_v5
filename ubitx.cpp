@@ -249,25 +249,19 @@ void RitDisable() {
 }
 
 void CwSpeedSet(unsigned int speed) {
-  if (speed != cw_speed) {
-    EEPROM.put(CW_SPEED, speed);
-  }
   cw_speed = speed;
+  EEPROM.put(CW_SPEED, cw_speed);
 }
 
 void CwToneSet(unsigned int tone) {
-  if (tone != cw_side_tone) {
-    EEPROM.put(CW_SIDE_TONE, tone);
-  }
   cw_side_tone = tone;
+  EEPROM.put(CW_SIDE_TONE, cw_side_tone);
 }
 
 void IambicKeySet(unsigned char key) {
-  if (key != iambic_key) {
-    EEPROM.put(IAMBIC_KEY, key);
-  }
-
   iambic_key = key;
+  EEPROM.put(IAMBIC_KEY, iambic_key);
+
   if (iambic_key == 1)
     keyer_control &= ~0x10;  // IAMBICB bit
   if (iambic_key == 2)
@@ -281,32 +275,26 @@ void SidebandSet(char usb) {
 }
 
 void VfoSwap(unsigned char save) {
+  RitDisable();
   if (vfo_active == VFO_ACTIVE_A) {
-    if (vfo_a != frequency) {
-      vfo_a = frequency;
-      if (save) EEPROM.put(VFO_A, vfo_a);
-    }
-    if (vfo_a_usb != is_usb) {
-      vfo_a_usb = is_usb;
-      if (save) EEPROM.put(VFO_A_USB, vfo_a_usb);
-    }
+    vfo_a = frequency;
+    vfo_a_usb = is_usb;
+    if (save) EEPROM.put(VFO_A, vfo_a);
+    if (save) EEPROM.put(VFO_A_USB, vfo_a_usb);
+
     vfo_active = VFO_ACTIVE_B;
     frequency = vfo_b;
     is_usb = vfo_b_usb;
   } else {
-    if (vfo_b != frequency) {
-      vfo_b = frequency;
-      if (save) EEPROM.put(VFO_B, vfo_b);
-    }
-    if (vfo_b_usb != is_usb) {
-      vfo_b_usb = is_usb;
-      if (save) EEPROM.put(VFO_B_USB, vfo_b_usb);
-    }
+    vfo_b = frequency;
+    vfo_b_usb = is_usb;
+    if (save) EEPROM.put(VFO_B, vfo_b);
+    if (save) EEPROM.put(VFO_B_USB, vfo_b_usb);
+
     vfo_active = VFO_ACTIVE_A;
     frequency = vfo_a;
     is_usb = vfo_a_usb;
   }
-  RitDisable();
   SetFrequency(frequency);
 }
 
@@ -321,10 +309,8 @@ void SplitDisable() {
 }
 
 void SetUsbCarrier(unsigned long long carrier) {
-  if (carrier != usb_carrier) {
-    EEPROM.put(USB_CARRIER, carrier);
-  }
   usb_carrier = carrier;
+  EEPROM.put(USB_CARRIER, usb_carrier);
 
   si5351bx_setfreq(0, usb_carrier);
   SetFrequency(frequency);
@@ -441,7 +427,7 @@ void masterLoop() {
 
 Task master(TASK_IMMEDIATE, TASK_FOREVER, &masterLoop);
 
-void ResetSettings() {
+void ResetSettingsAndHalt() {
   master_cal = 154117;
   usb_carrier = 11056273l;
   cw_side_tone = 800;
@@ -486,18 +472,19 @@ void InitSettings() {
 
   EEPROM.get(MAGIC_ADDR, magicNr);
   if (magicNr != MAGIC_NR) {
-    ResetSettings();
-  } else {
-    EEPROM.get(MASTER_CAL, master_cal);
-    EEPROM.get(USB_CARRIER, usb_carrier);
-    EEPROM.get(CW_SIDE_TONE, cw_side_tone);
-    EEPROM.get(VFO_A, vfo_a);
-    EEPROM.get(VFO_B, vfo_b);
-    EEPROM.get(CW_SPEED, cw_speed);
-    EEPROM.get(VFO_A_USB, vfo_a_usb);
-    EEPROM.get(VFO_B_USB, vfo_b_usb);
-    EEPROM.get(IAMBIC_KEY, iambic_key);
+    ResetSettingsAndHalt();
+    return;
   }
+
+  EEPROM.get(MASTER_CAL, master_cal);
+  EEPROM.get(USB_CARRIER, usb_carrier);
+  EEPROM.get(CW_SIDE_TONE, cw_side_tone);
+  EEPROM.get(VFO_A, vfo_a);
+  EEPROM.get(VFO_B, vfo_b);
+  EEPROM.get(CW_SPEED, cw_speed);
+  EEPROM.get(VFO_A_USB, vfo_a_usb);
+  EEPROM.get(VFO_B_USB, vfo_b_usb);
+  EEPROM.get(IAMBIC_KEY, iambic_key);
 
   // TODO - EEPROM
   first_if = 45005000L; // should be eeprom
@@ -562,7 +549,7 @@ void setup() {
   InitSettings();
   InitPorts();     
   if (BtnDown())
-    ResetSettings();
+    ResetSettingsAndHalt();
 
   InitEncoder();
   InitOscillators();

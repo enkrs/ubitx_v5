@@ -83,6 +83,6 @@ void SplitEnable();
 void TxStart(char tx_mode);
 void TxStop();
 void VfoSwap(unsigned char save);
-void ResetSettings();
+void ResetSettingsAndHalt();
 
 #endif  // UBITX_H_
