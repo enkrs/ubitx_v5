@@ -23,4 +23,4 @@ Program memory / global variables
   * 20052 / 1107 si5351 namespace
   * 20052 / 1107 mainloop namespace
   * 20052 / 1107 menu namespace
-  * 19926 / 1107 removed PinMode
+  * 19966 / 1123 buttons/encoder converted to PORT from digitalRead

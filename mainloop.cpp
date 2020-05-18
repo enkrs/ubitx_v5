@@ -78,18 +78,10 @@ void DoTuning() {
   } else {
     // Normal tuning
     unsigned long prev_freq = ubitx::frequency;
-    if (knob > 4)
-      ubitx::frequency += 10000l;
-    else if (knob > 2)
-      ubitx::frequency += 500;
-    else if (knob > 0)
-      ubitx::frequency +=  50l;
-    else if (knob > -2)
-      ubitx::frequency -= 50l;
-    else if (knob > -4)
-      ubitx::frequency -= 500l;
-    else
-      ubitx::frequency -= 10000l;
+    if (abs(knob) > 5)
+      ubitx::frequency += knob * 1000;
+    else 
+      ubitx::frequency += knob * 50;
 
     if (prev_freq < 10000000l && ubitx::frequency >= 10000000l)
       ubitx::is_usb = 1;
@@ -119,8 +111,10 @@ void Run() {
   CheckButton();
 
   if (menu::menu_state) {
+    ui::u8x8.setPowerSave(1);
     menu::DoMenu();
   } else {
+    ui::u8x8.setPowerSave(0);
     DoTuning();
     ui::UpdateVoltage();
   }
@@ -141,12 +135,10 @@ void setup() {
   // the "_f" version uses extra 1280 bytes of storage space
   // u8x8.setFont(u8x8_font_amstrad_cpc_extended_f); 
   ui::u8x8.setFont(U8X8_MAINFONT); 
-  ui::u8x8.setPowerSave(0);
 
   //we print this line so this shows up even if the raduino 
   //crashes later in the code
-  ui::u8x8.drawString(1, 6, "UBITX V5.1"); 
-  ui::u8x8.drawString(1, 7, "YL3AME"); 
+  ui::u8x8.draw1x2String(1, 1, "YL3AME"); 
 
   ubitx::InitSettings();
   if (ui::BtnDown())

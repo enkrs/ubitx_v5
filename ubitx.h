@@ -1,9 +1,6 @@
 #ifndef UBITX_H_
 #define UBITX_H_
 
-// utility memory
-extern char c[30], b[30];      
-
 namespace ubitx {
 
 /**

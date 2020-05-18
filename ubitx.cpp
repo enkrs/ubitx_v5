@@ -42,9 +42,6 @@
 #include "si5351.h"
 #include "ui.h"
 
-// utility memory
-char c[30], b[30];
-
 namespace ubitx {
 
 /**
@@ -124,11 +121,11 @@ void SetTxFilters(unsigned long freq) {
   } else if (freq > 7000000L) {
     digitalWrite(hw::TX_LPF_A, 0);
     digitalWrite(hw::TX_LPF_B, 1);
-    digitalWrite(hw::TX_LPF_C, 0);    
+    digitalWrite(hw::TX_LPF_C, 0);
   } else {
     digitalWrite(hw::TX_LPF_A, 0);
     digitalWrite(hw::TX_LPF_B, 0);
-    digitalWrite(hw::TX_LPF_C, 1);    
+    digitalWrite(hw::TX_LPF_C, 1);
   }
 }
 
@@ -202,7 +199,7 @@ void TxStart(char tx_mode) {
 void TxStop() {
   in_tx = 0;
 
-  digitalWrite(hw::TX_RX, 0);           //turn off the tx
+  digitalWrite(hw::TX_RX, 0);
   si5351::SetFreq(0, settings::usb_carrier);  //set back the carrrier oscillator, cw tx switches it off
 
   if (shift_mode == SHIFT_RIT ) { // rit

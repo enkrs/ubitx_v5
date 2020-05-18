@@ -9,6 +9,9 @@
 
 namespace menu {
 
+char b[12]; // holds strings up to ltoa "-2147483647\0"
+            // also itoa with prefix    "-32767 HZ..\0"
+
 /** Menus
  *  The Radio menus are accessed by tapping on the function button. 
  *  - The main loop() constantly looks for a button press and calls DoMenu() when it detects
@@ -268,8 +271,8 @@ void MenuSetupCalibration(int btn) {
 void PreviewCarrier(long int adjust) {
   unsigned long long carrier = 11000000 + adjust;
   si5351::SetFreq(0, carrier);
-  ultoa(carrier, c, DEC);
-  ui::PrintLine(4, c);
+  ultoa(carrier, b, DEC);
+  ui::PrintLine(4, b);
 }
 
 void MenuSetupCarrier(int btn) {

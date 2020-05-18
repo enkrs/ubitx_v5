@@ -10,19 +10,30 @@
 
 namespace ui {
 
+const int debounce_count = 1000;
+unsigned long last_v_update = 0;
+int prev_voltage = -1;
+
 U8X8_SSD1306_128X64_NONAME_HW_I2C u8x8(U8X8_PIN_NONE);
 
 // returns 1 if the button is pressed
 char BtnDown() {
-  if (digitalRead(hw::FBUTTON) == HIGH)
-    return 0;
-  else
-    return 1;
+  //if (digitalRead(hw::FBUTTON) == HIGH)
+  // button must be down (0) for debounce_count samples in a row
+  for (int i = 0; i < debounce_count; i++)
+    if ((PINC & (1<<PC2)) != 0) return 0;
+
+  return 1;
 }
 
 void BtnWaitUp() {
-  while (digitalRead(hw::FBUTTON) == LOW)
-    delay(20);
+  // button must be up (1) for 10 samples in a row
+  int i = 0;
+  while (i < debounce_count) {
+    i++;
+    // reset counter if button down (0)
+    if ((PINC & (1<<PC2)) == 0) i = 0;
+  }
 }
 
 // The generic routine to display one line on the LCD
@@ -84,7 +95,7 @@ void UpdateDisplay() {
     u8x8.draw1x2Glyph(15, 1, ubitx::vfo_active == ubitx::VFO_ACTIVE_A ? 'A' : 'B');
   }
 
-  memset(b, 0, sizeof(b));
+  char b[11]; // holds string up to "4294967295\0"
   ultoa(ubitx::frequency, b, DEC);
 
   u8x8.setFont(U8X8_DIGITFONT);
@@ -99,14 +110,14 @@ void UpdateDisplay() {
   u8x8.drawGlyph(12, 3, b[n++]);
   u8x8.drawGlyph(14, 3, b[n++]);
   u8x8.setFont(U8X8_MAINFONT);
+
+  last_v_update = 0; prev_voltage = -1;
   UpdateVoltage();
 }
 
 void UpdateVoltage() {
-  static unsigned long last_update = 0;
-  static int prev_voltage = -0;
-  if (last_update + 500 > millis()) return;
-  last_update = millis();
+  if (last_v_update + 500 > millis()) return;
+  last_v_update = millis();
   // 3.7 volts were tead as 189
   // 11.9V volts were read as 552:
   int cur_voltage = map(analogRead(hw::ANALOG_V), 189, 552, 37, 119);
@@ -115,8 +126,8 @@ void UpdateVoltage() {
     return;
   }
   if (cur_voltage != prev_voltage) {
+    char b[7]; // holds string up to "-32767\0"
     prev_voltage = cur_voltage;
-    memset(b, 0, sizeof(b));
     itoa(cur_voltage, b, DEC);
     int n = 0;
     u8x8.draw1x2Glyph(11, 6, cur_voltage < 100 ? ' ' : b[n++]);

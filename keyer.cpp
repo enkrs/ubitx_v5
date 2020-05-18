@@ -66,9 +66,9 @@ char last_paddle = 0;
  * each time it is called, the cwTimeOut is pushed further into the future
  */
 void CwKeydown() {
-  key_down = 1;                  //tracks the CW_KEY
+  key_down = 1;  //tracks the CW_KEY
   tone(hw::CW_TONE, settings::cw_side_tone); 
-  digitalWrite(hw::CW_KEY, 1);     
+  digitalWrite(hw::CW_KEY, 1);
 
   cw_timeout = millis() + ubitx::cw_delay_time * 10;  
 }
@@ -77,10 +77,10 @@ void CwKeydown() {
  * Stops the cw carrier transmission along with the sidetone
  * Pushes the cw_timeout further into the future
  */
-void cwKeyUp() {
-  key_down = 0;    //tracks the CW_KEY
+void CwKeyUp() {
+  key_down = 0;
   noTone(hw::CW_TONE);
-  digitalWrite(hw::CW_KEY, 0);    
+  digitalWrite(hw::CW_KEY, 0);
   
   //Modified by KD8CEC, for CW Delay Time save to eeprom
   cw_timeout = millis() + ubitx::cw_delay_time * 10;
@@ -187,7 +187,7 @@ void CwKeyerIambic() {
         break;
       case KEYED:
         if (millis() > ktimer) {  // are we at end of key down ?
-          cwKeyUp();
+          CwKeyUp();
           ktimer = millis() + settings::cw_speed;  // inter-element time
           keyerState = INTER_ELEMENT;  // next state
         } else if (ubitx::keyer_control & IAMBICB) {
@@ -227,7 +227,7 @@ void CwKeyerStraight() {
       
       while (UpdatePaddleLatch(0) == DIT_L) {}
         
-      cwKeyUp();
+      CwKeyUp();
     } else {
       if (0 < cw_timeout && cw_timeout < millis()) {
         cw_timeout = 0;

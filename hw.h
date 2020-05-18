@@ -29,14 +29,19 @@ namespace hw {
  * A7 is connected to a center pin of good quality 100K or 10K linear potentiometer with the two other ends connected to
  * ground and +5v lines available on the connector. This implments the tuning mechanism
  */
-const int OLED_ENABLE  =  8; // PINB 0 output
-const int ENC_A        =  9; // PINB 1 input
-const int ENC_B        = 10; // PINB 2 input
+const int OLED_ENABLE  =  8; // PORTB 0 output PB0
+const int ENC_A        =  9; // PINB 1 input PB1
+const int ENC_B        = 10; // PINB 2 input PB2
 
-const int FBUTTON      = A2; // PINC 2 input
-const int PTT          = A3; // PINC 3 input
-const int ANALOG_KEYER = A6; // PINC 6 input
-const int ANALOG_V     = A7; // PINC 7 input
+const int FBUTTON      = A2; // PINC 2 input PC2
+const int PTT          = A3; // PINC 3 input PC3
+const int ANALOG_KEYER = A6; // PINC 6 input PC6
+const int ANALOG_V     = A7; // PINC 7 input PC7
+
+// examples
+// PORTD &= ~(1<<PD4 | 1<<PD5);  // A, B off
+// PORTD |= 1<<PD3;              // C on
+
 // A0 A1 Are original encoder pins, also usable
 
 /** 
@@ -48,12 +53,12 @@ const int ANALOG_V     = A7; // PINC 7 input
  *  - TX_RX line : Switches between Transmit and Receive after sensing the PTT or the morse keyer
  *  - CW_KEY line : turns on the carrier for CW
  */
-const int CW_KEY   = 2; // PIND 2 output
-const int TX_LPF_C = 3; // PIND 3 output
-const int TX_LPF_B = 4; // PIND 4 output
-const int TX_LPF_A = 5; // PIND 5 output
-const int CW_TONE  = 6; // PIND 6 output
-const int TX_RX    = 7; // PIND 7 output
+const int CW_KEY   = 2; // PORTD 2 output PD2
+const int TX_LPF_C = 3; // PORTD 3 output PD3
+const int TX_LPF_B = 4; // PORTD 4 output PD4
+const int TX_LPF_A = 5; // PORTD 5 output PD5
+const int CW_TONE  = 6; // PORTD 6 output PD6
+const int TX_RX    = 7; // PORTD 7 output PD7
 
 }  // namespace
 

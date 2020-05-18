@@ -318,12 +318,13 @@ void ProcessCatCommand(char* cmd) {
       Serial.write(response, 1);
       break;
     }
-    default:  // TODO This is debug, remove from final
-      ultoa(*((unsigned long *)cmd), c, 16);
-      itoa(cmd[4], b, 16);
-      strcat(b, ">");
-      strcat(b, c);
-      ui::u8x8.drawString(1, 5, b);
+    default: 
+      // This is debug, remove from final
+      //ultoa(*((unsigned long *)cmd), c, 16);
+      //itoa(cmd[4], b, 16);
+      //strcat(b, ">");
+      //strcat(b, c);
+      // ui::u8x8.drawString(1, 5, b);
       response[0] = 0x00;
       Serial.write(response[0]);
   }

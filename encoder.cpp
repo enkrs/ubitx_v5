@@ -3,34 +3,47 @@
 #include "hw.h"
 
 namespace encoder {
+// Code adapted from https://github.com/brianlow/Rotary
 
 // Normal encoder state
 volatile char enc_count = 0;
 
-char State(void) {
-  return (digitalRead(hw::ENC_A) ? 1 : 0 + digitalRead(hw::ENC_B) ? 2 : 0);
-}
+// Values returned by 'process'
+#define DIR_NONE 0x0
+#define DIR_CW 0x10
+#define DIR_CCW 0x20
+
+#define R_START 0x0
+#define R_CCW_BEGIN 0x1
+#define R_CW_BEGIN 0x2
+#define R_START_M 0x3
+#define R_CW_BEGIN_M 0x4
+#define R_CCW_BEGIN_M 0x5
+
+// Internal state
+unsigned char state = R_START;
+
+const unsigned char ttable[6][4] = {
+  {R_START_M,            R_CW_BEGIN,     R_CCW_BEGIN,  R_START}, // R_START (00)
+  {R_START_M | DIR_CCW,  R_START,        R_CCW_BEGIN,  R_START}, // R_CCW_BEGIN
+  {R_START_M | DIR_CW,   R_CW_BEGIN,     R_START,      R_START}, // R_CW_BEGIN
+  {R_START_M,            R_CCW_BEGIN_M,  R_CW_BEGIN_M, R_START}, // R_START_M (11)
+  {R_START_M,            R_START_M,      R_CW_BEGIN_M, R_START | DIR_CW}, // R_CW_BEGIN_M
+  {R_START_M,            R_CCW_BEGIN_M,  R_START_M,    R_START | DIR_CCW}, // R_CCW_BEGIN_M
+};
 
 /*
  * SmittyHalibut's encoder handling, using interrupts. Should be quicker, smoother handling.
  * The Interrupt Service Routine for Pin Change Interrupts on A0-A5.
  */
 ISR(PCINT0_vect) {
-  static char prev_enc = State();
-  char cur_enc = State();
+  unsigned char pinstate = (PINB & 0b00000110) >> 1;
 
-  if ((prev_enc == 0 && cur_enc == 2) ||
-      (prev_enc == 2 && cur_enc == 3) ||
-      (prev_enc == 3 && cur_enc == 1) ||
-      (prev_enc == 1 && cur_enc == 0)) {
-    enc_count -= 1;
-  } else if ((prev_enc == 0 && cur_enc == 1) ||
-      (prev_enc == 1 && cur_enc == 3) ||
-      (prev_enc == 3 && cur_enc == 2) ||
-      (prev_enc == 2 && cur_enc == 0)) {
-    enc_count += 1;
+  state = ttable[state & 0xf][pinstate];
+  switch (state & 0x30) {
+    case DIR_CW: enc_count -= 1; break;
+    case DIR_CCW: enc_count += 1; break;
   }
-  prev_enc = cur_enc;  // Record state for next pulse interpretation
 }
 
 /*
@@ -55,7 +68,7 @@ int Read() {
 }
 
 int ReadSlow() {
-  int ret = enc_count / 4;
+  int ret = enc_count / 2;
   if (ret) enc_count = 0;
   return ret;
 }
