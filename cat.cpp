@@ -8,33 +8,33 @@
  * WARNING : This is an unstable version and it has worked with fldigi, 
  * it gives time out error with WSJTX 1.8.0  
  */
-#include "ubitx_cat.h"
-
+#include "cat.h"
 #include <Arduino.h>
-
+#include "settings.h"
 #include "ubitx.h"
-#include "ubitx_menu.h"
-#include "ubitx_ui.h"
+#include "ui.h"
 
-#define CAT_RECEIVE_TIMEOUT 500
+namespace cat {
 
-#define CAT_MODE_LSB            0x00
-#define CAT_MODE_USB            0x01
-#define CAT_MODE_CW             0x02
-#define CAT_MODE_CWR            0x03
-#define CAT_MODE_AM             0x04
-#define CAT_MODE_FM             0x08
-#define CAT_MODE_DIG            0x0A
-#define CAT_MODE_PKT            0x0C
-#define CAT_MODE_FMN            0x88
-#define ACK 0
+const int CAT_RECEIVE_TIMEOUT = 500;
+
+const char CAT_MODE_LSB = 0x00;
+const char CAT_MODE_USB = 0x01;
+const char CAT_MODE_CW  = 0x02;
+const char CAT_MODE_CWR = 0x03;
+const char CAT_MODE_AM  = 0x04;
+const char CAT_MODE_FM  = 0x08;
+const char CAT_MODE_DIG = 0x0A;
+const char CAT_MODE_PKT = 0x0C;
+const char CAT_MODE_FMN = 0x88;
+const char ACK = 0;
 
 char tx_cat = 0;  // turned on if the transmitting due to a CAT command
 
-static unsigned long rx_buffer_arrive_time = 0;
-static char rx_buffer_check_count = 0;
-static char cat[5]; 
-static char inside_cat = 0; 
+unsigned long rx_buffer_arrive_time = 0;
+char rx_buffer_check_count = 0;
+char cat[5]; 
+char inside_cat = 0; 
 
 // 18570
 static char SetHighNibble(char b, char v) {
@@ -147,7 +147,7 @@ void CatReadEeprom() {
       // 5 : Memory/MTUNE select  0 = Memory, 1 = MTUNE
       // 6 :
       // 7 : MEM/VFO Select  0 = Memory, 1 = VFO (A or B - see bit 0)
-      cat[0] = 0x80 + (vfo_active == VFO_ACTIVE_B ? 1 : 0);
+      cat[0] = 0x80 + (ubitx::vfo_active == ubitx::VFO_ACTIVE_B ? 1 : 0);
       cat[1] = 0x00;
       break;
     case 0x57:
@@ -169,7 +169,7 @@ void CatReadEeprom() {
       // 5-4 :  Lock Mode (#32) 00 = Dial, 01 = Freq, 10 = Panel
       // 7-6 :  Op Filter (#38) 00 = Off, 01 = SSB, 10 = CW
       // CAT_BUFF[0] = 0x08;
-      cat[0] = (cw_side_tone - 300)/50;
+      cat[0] = (settings::cw_side_tone - 300)/50;
       cat[1] = 0x25;
       break;
     case 0x61:  // Sidetone (Volume) (#44)
@@ -185,14 +185,14 @@ void CatReadEeprom() {
       cat[1] = 0x08;
       break;
     case 0x60:  // CW Delay (10-2500 ms) (#17)  From 1 to 250 (decimal) with each step representing 10 ms
-      cat[0] = cw_delay_time;
+      cat[0] = ubitx::cw_delay_time;
       cat[1] = 0x32;
       break;
     case 0x62:
       // 5-0  CW Speed (4-60 WPM) (#21) From 0 to 38 (HEX) with 0 = 4 WPM and 38 = 60 WPM (1 WPM steps)
       // 7-6  Batt-Chg (6/8/10 Hours (#11)  00 = 6 Hours, 01 = 8 Hours, 10 = 10 Hours
       // CAT_BUFF[0] = 0x08;
-      cat[0] = 1200 / cw_speed - 4;
+      cat[0] = 1200 / settings::cw_speed - 4;
       cat[1] = 0xB2;
       break;
     case 0x63:
@@ -206,7 +206,7 @@ void CatReadEeprom() {
       cat[1] = 0xB2;
       break;      case 0x69 : // FM Mic (#29)  Contains 0-100 (decimal) as displayed
     case 0x78:
-      cat[0] = is_usb ? CAT_MODE_USB : CAT_MODE_LSB;
+      cat[0] = ubitx::is_usb ? CAT_MODE_USB : CAT_MODE_LSB;
       if (cat[0] != 0) cat[0] = 1 << 5;
       break;
     case  0x79:
@@ -228,7 +228,7 @@ void CatReadEeprom() {
       // 7A  6 ? ?
       // 7A  7 SPL On/Off  0 = Off, 1 = On
 
-      cat[0] = (shift_mode == SHIFT_SPLIT ? 0xFF : 0x7F);
+      cat[0] = (ubitx::shift_mode == ubitx::SHIFT_SPLIT ? 0xFF : 0x7F);
       break;
     case 0xB3:
       cat[0] = 0x00;
@@ -245,56 +245,55 @@ void ProcessCatCommand(char* cmd) {
   switch((unsigned char)cmd[4]) {
     case 0x01:  // set frequency
       f = ReadFreq(cmd);
-      SetFrequency(f);   
-      UpdateDisplay();
+      ubitx::SetFrequency(f);   
+      ui::UpdateDisplay();
       response[0]=0;
       Serial.write(response, 1);
       break;
     case 0x02:  // split on
-      SplitEnable();
+      ubitx::SplitEnable();
       break;
     case 0x82:  // split off
-      SplitDisable();
+      ubitx::SplitDisable();
       break;
     case 0x03:
-      WriteFreq(frequency, response); // Put the frequency into the buffer
-      response[4] = is_usb ? 0x01 : 0x00;
+      WriteFreq(ubitx::frequency, response); // Put the frequency into the buffer
+      response[4] = ubitx::is_usb ? 0x01 : 0x00;
       Serial.write(response, 5);
       break;
     case 0x07:  // set mode
-      is_usb = (cmd[0] == 0x00 || cmd[0] == 0x03) ? 0 : 1;
+      ubitx::SidebandSet((cmd[0] == 0x00 || cmd[0] == 0x03) ? 0 : 1);
       response[0] = 0x00;
       Serial.write(response, 1);
-      SetFrequency(frequency);
-      UpdateDisplay();
+      ui::UpdateDisplay();
       break;   
     case 0x08:  // PTT On
-      if (!in_tx) {
+      if (!ubitx::in_tx) {
         response[0] = 0;
         tx_cat = 1;
-        TxStart(TX_SSB);
-        UpdateDisplay();
+        ubitx::TxStart(ubitx::TX_SSB);
+        ui::UpdateDisplay();
       } else {
         response[0] = 0xf0;
       } 
       Serial.write(response, 1);
-      UpdateDisplay();
+      ui::UpdateDisplay();
       break;
     case 0x88:  // PTT OFF
-      if (in_tx) {
-        TxStop();
+      if (ubitx::in_tx) {
+        ubitx::TxStop();
         tx_cat = 0;
       }
       response[0] = 0;
       Serial.write(response, 1);
-      UpdateDisplay();
+      ui::UpdateDisplay();
       break;
     case 0x81:
       // toggle the VFOs
       response[0] = 0;
-      VfoSwap(1);
+      ubitx::VfoSwap(1);
       Serial.write(response, 1);
-      UpdateDisplay();
+      ui::UpdateDisplay();
       break;
   case 0xBB:  // Read FT-817 EEPROM Data  (for comfirtable)
       CatReadEeprom();
@@ -307,14 +306,12 @@ void ProcessCatCommand(char* cmd) {
       break;
     case 0xf7: {
       char isHighSWR = 0;
-      char isSplitOn = 0;
     
       // Inverted -> *ptt = ((p->tx_status & 0x80) == 0);
       // from souce code in ft817.c (hamlib)
-
-      response[0] = ((in_tx ? 0 : 1) << 7) +
+      response[0] = ((ubitx::in_tx ? 0 : 1) << 7) +
         ((isHighSWR ? 1 : 0) << 6) +  // hi swr off / on
-        ((isSplitOn ? 1 : 0) << 5) + // Split on / off
+        ((ubitx::shift_mode == ubitx::SHIFT_SPLIT ? 1 : 0) << 5) + // Split on / off
         (0 << 4) +  // dummy data
         0x08;  // P0 meter data
 
@@ -326,7 +323,7 @@ void ProcessCatCommand(char* cmd) {
       itoa(cmd[4], b, 16);
       strcat(b, ">");
       strcat(b, c);
-      u8x8.drawString(1, 5, b);
+      ui::u8x8.drawString(1, 5, b);
       response[0] = 0x00;
       Serial.write(response[0]);
   }
@@ -334,10 +331,9 @@ void ProcessCatCommand(char* cmd) {
   inside_cat = 0;
 }
 
-// cat_contral task runs ChceckCat() over and over again
-// orchestrated by scheduler in ubitx.cpp
+// main calls run() over and over again
 
-void CheckCat() {
+void Run() {
   unsigned char i;
 
   // Check Serial Port Buffer
@@ -373,4 +369,4 @@ void CheckCat() {
   inside_cat = 0;
 }
 
-Task cat_control(TASK_IMMEDIATE, TASK_FOREVER, &CheckCat);
+}  // namespace

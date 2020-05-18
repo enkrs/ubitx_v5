@@ -1,8 +1,11 @@
 #ifndef UBITX_KEYER_H_
 #define UBITX_KEYER_H_
 
-#include <TaskSchedulerDeclarations.h>
+namespace keyer {
 
-extern Task cw_keyer;
+extern unsigned long cw_timeout;
+void Run();
+
+}
 
 #endif  // UBITX_KEYER_H_

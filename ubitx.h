@@ -1,6 +1,11 @@
 #ifndef UBITX_H_
 #define UBITX_H_
 
+// utility memory
+extern char c[30], b[30];      
+
+namespace ubitx {
+
 /**
  * The uBITX is an upconnversion transceiver. The first IF is at 45 MHz.
  * The first IF frequency is not exactly at 45 Mhz but about 5 khz lower,
@@ -19,13 +24,13 @@
  */
 
 // limits the tuning and working range of the ubitx between 1 MHz and 30 MHz
-#define LOWEST_FREQ   (1000000l)
-#define HIGHEST_FREQ (30000000l)
+const unsigned long LOWEST_FREQ  =  1000000l;
+const unsigned long HIGHEST_FREQ = 30000000l;
 
 //we directly generate the CW by programming the Si5351 to the cw tx frequency, hence, both are different modes
 //these are the parameter passed to TxStart
-#define TX_SSB (0)
-#define TX_CW (1)
+const int TX_SSB = 0;
+const int TX_CW = 1;
 
 /** 
  * The Raduino board is the size of a standard 16x2 LCD panel. It has three connectors:
@@ -41,20 +46,12 @@
  * We include the library and declare the configuration of the LCD panel too
  */
 
-#define SHIFT_NONE (0)
-#define SHIFT_RIT (1)
-#define SHIFT_SPLIT (2)
+const int SHIFT_NONE = 0;
+const int SHIFT_RIT = 1;
+const int SHIFT_SPLIT = 2;
 
-#define VFO_ACTIVE_A (0)
-#define VFO_ACTIVE_B (1)
-
-extern char c[30], b[30];      
-
-extern long master_cal;
-extern unsigned long usb_carrier;
-extern unsigned int cw_side_tone;
-extern unsigned int cw_speed;
-extern unsigned char iambic_key;
+const int VFO_ACTIVE_A = 0;
+const int VFO_ACTIVE_B = 1;
 
 extern char shift_mode;
 extern char vfo_active;
@@ -66,10 +63,17 @@ extern char tx_inhibit;
 extern unsigned long frequency;
 
 extern char in_tx;
-extern unsigned long cw_timeout;
 
+// Utility functions
 void ActiveDelay(unsigned int delay_by);
 
+// General functions
+void InitSettings();
+void InitPorts();
+void InitOscillators();
+void ResetSettingsAndHalt();
+
+// Radio functions
 void RitDisable();
 void RitEnable(unsigned long f);
 void CwSpeedSet(unsigned int wpm);
@@ -83,6 +87,7 @@ void SplitEnable();
 void TxStart(char tx_mode);
 void TxStop();
 void VfoSwap(unsigned char save);
-void ResetSettingsAndHalt();
+
+}  // namespace
 
 #endif  // UBITX_H_

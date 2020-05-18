@@ -1,6 +1,11 @@
 #ifndef UBITX_MENU_H_
 #define UBITX_MENU_H_
 
-void MenuTaskStart();
+namespace menu {
+
+extern char menu_state;
+void DoMenu();
+
+}
 
 #endif  // UBITX_MENU_H_

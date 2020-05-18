@@ -1,9 +1,11 @@
 #ifndef UBITX_CAT_H_
 #define UBITX_CAT_H_
 
-#include <TaskSchedulerDeclarations.h>
+namespace cat {
 
 extern char tx_cat;
-extern Task cat_control;
+void Run();
+
+}
 
 #endif  // UBITX_CAT_H_

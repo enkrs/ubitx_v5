@@ -1,6 +1,8 @@
 #ifndef HARDWARE_H_
 #define HARDWARE_H_
 
+namespace hw {
+
 /**
  * We need to carefully pick assignment of pin for various purposes.
  * There are two sets of completely programmable pins on the Raduino.
@@ -27,14 +29,15 @@
  * A7 is connected to a center pin of good quality 100K or 10K linear potentiometer with the two other ends connected to
  * ground and +5v lines available on the connector. This implments the tuning mechanism
  */
-#define ENC_A        (9)
-#define ENC_B        (10)
-#define FBUTTON      (A2)
-#define PTT          (A3)
-#define ANALOG_KEYER (A6)
-#define ANALOG_V     (A7)
+const int OLED_ENABLE  =  8; // PINB 0 output
+const int ENC_A        =  9; // PINB 1 input
+const int ENC_B        = 10; // PINB 2 input
+
+const int FBUTTON      = A2; // PINC 2 input
+const int PTT          = A3; // PINC 3 input
+const int ANALOG_KEYER = A6; // PINC 6 input
+const int ANALOG_V     = A7; // PINC 7 input
 // A0 A1 Are original encoder pins, also usable
-#define OLED_ENABLE  (8)
 
 /** 
  *  The second set of 16 pins on the Raduino's bottom connector are have the three clock outputs and the digital lines to control the rig.
@@ -45,11 +48,13 @@
  *  - TX_RX line : Switches between Transmit and Receive after sensing the PTT or the morse keyer
  *  - CW_KEY line : turns on the carrier for CW
  */
-#define CW_KEY   (2)
-#define TX_LPF_C (3)
-#define TX_LPF_B (4)
-#define TX_LPF_A (5)
-#define CW_TONE  (6)
-#define TX_RX    (7)
+const int CW_KEY   = 2; // PIND 2 output
+const int TX_LPF_C = 3; // PIND 3 output
+const int TX_LPF_B = 4; // PIND 4 output
+const int TX_LPF_A = 5; // PIND 5 output
+const int CW_TONE  = 6; // PIND 6 output
+const int TX_RX    = 7; // PIND 7 output
+
+}  // namespace
 
 #endif  // HARDWARE_H_

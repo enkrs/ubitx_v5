@@ -1,14 +1,14 @@
 #include "encoder.h"
-
 #include <Arduino.h>
-#include "hardware.h"
-#include "eeprom.h"
+#include "hw.h"
+
+namespace encoder {
 
 // Normal encoder state
 volatile char enc_count = 0;
 
-char EncState(void) {
-  return (digitalRead(ENC_A) ? 1 : 0 + digitalRead(ENC_B) ? 2 : 0);
+char State(void) {
+  return (digitalRead(hw::ENC_A) ? 1 : 0 + digitalRead(hw::ENC_B) ? 2 : 0);
 }
 
 /*
@@ -16,8 +16,8 @@ char EncState(void) {
  * The Interrupt Service Routine for Pin Change Interrupts on A0-A5.
  */
 ISR(PCINT0_vect) {
-  static char prev_enc = EncState();
-  char cur_enc = EncState();
+  static char prev_enc = State();
+  char cur_enc = State();
 
   if ((prev_enc == 0 && cur_enc == 2) ||
       (prev_enc == 2 && cur_enc == 3) ||
@@ -42,20 +42,22 @@ void PciSetup(byte pin) {
   PCICR |= bit(digitalPinToPCICRbit(pin));  // enable interrupt for the group
 }
 
-void InitEncoder(void) {
+void Init(void) {
   // Setup Pin Change Interrupts for the encoder inputs
-  PciSetup(ENC_A);
-  PciSetup(ENC_B);
+  PciSetup(hw::ENC_A);
+  PciSetup(hw::ENC_B);
 }
 
-int EncRead() {
+int Read() {
   int ret = enc_count;
   enc_count = 0;
   return ret;
 }
 
-int EncReadSlow() {
+int ReadSlow() {
   int ret = enc_count / 4;
   if (ret) enc_count = 0;
   return ret;
 }
+
+} // namespace
