@@ -9,6 +9,7 @@
 namespace ui {
 
 extern U8X8_SSD1306_128X64_NONAME_HW_I2C u8x8;
+const int debounce_count = 500;
 
 char BtnDown();
 void BtnWaitUp();

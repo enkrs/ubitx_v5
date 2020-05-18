@@ -26,19 +26,17 @@ void CheckPtt() {
   if (cat::tx_cat)
     return;
     
-  if (digitalRead(hw::PTT) == LOW && ubitx::in_tx == 0) {
-    delay(20);
-    if (digitalRead(hw::PTT) == HIGH) return; // debounce
+  if (ubitx::in_tx == 0 && (PINC & (1<<PC3)) == 0) {
+    for (int i = 0; i < ui::debounce_count; i++)
+      if ((PINC & (1<<PC3)) != 0) return;  // debounce
     ubitx::TxStart(ubitx::TX_SSB);
-    ubitx::ActiveDelay(50); //debounce the PTT
     return;
   }
 	
-  if (digitalRead(hw::PTT) == HIGH && ubitx::in_tx == 1) {
-    delay(20);
-    while (digitalRead(hw::PTT) == LOW) return; // debounce
+  if (ubitx::in_tx == 1 && (PINC & (1<<PC3)) != 0) {
+    for (int i = 0; i < ui::debounce_count; i++)
+      if ((PINC & (1<<PC3)) == 0) return;  // debounce
     ubitx::TxStop();
-    ubitx::ActiveDelay(50); //debounce the PTT
     return;
   }
 }
@@ -111,10 +109,8 @@ void Run() {
   CheckButton();
 
   if (menu::menu_state) {
-    ui::u8x8.setPowerSave(1);
     menu::DoMenu();
   } else {
-    ui::u8x8.setPowerSave(0);
     DoTuning();
     ui::UpdateVoltage();
   }

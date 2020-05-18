@@ -10,7 +10,6 @@
 
 namespace ui {
 
-const int debounce_count = 1000;
 unsigned long last_v_update = 0;
 int prev_voltage = -1;
 
