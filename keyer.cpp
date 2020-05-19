@@ -55,11 +55,6 @@ char delay_before_cw_start_time = 50;
 #define PADDLE_BOTH 3
 #define PADDLE_STRAIGHT 4
 
-//we store the last padde's character 
-//to alternatively send dots and dashes 
-//when both are simultaneously pressed
-char last_paddle = 0;
-
 /**
  * Starts transmitting the carrier with the sidetone
  * It assumes that we have called cwTxStart and not called cwTxStop
@@ -134,8 +129,6 @@ char UpdatePaddleLatch(char isUpdateKeyState) {
 void CwKeyerIambic() {
   char tmp_keyer_control = 0;
 
-  last_paddle = 0;
-
   while (1) {
     switch (keyerState) {
       case IDLE:
@@ -207,7 +200,6 @@ void CwKeyerIambic() {
         }
         break;
     }
-    ubitx::ActiveDelay(0);
   }
 }
 
