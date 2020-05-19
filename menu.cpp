@@ -42,6 +42,7 @@ static char NeedRedraw() {
 }
 
 unsigned char wait_knob_right = 0;
+
 void DrawWaitKnobScreen(const char* title, const char *units) {
   ui::u8x8.clear();
   ui::u8x8.draw1x2String(1, 6, title);
