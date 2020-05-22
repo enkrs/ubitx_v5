@@ -27,7 +27,6 @@
 #include "keyer.h"
 #include <Arduino.h>
 #include "hw.h"
-#include "settings.h"
 #include "ubitx.h"
 
 namespace keyer {
@@ -63,7 +62,7 @@ char delay_before_cw_start_time = 50;
  */
 void CwKeydown() {
   key_down = 1;  //tracks the CW_KEY
-  tone(hw::CW_TONE, settings::cw_side_tone); 
+  tone(hw::CW_TONE, ubitx::settings.cw_side_tone); 
   digitalWrite(hw::CW_KEY, 1);
 
   cw_timeout = millis() + ubitx::cw_delay_time * 10;  
@@ -109,7 +108,7 @@ char UpdatePaddleLatch(char isUpdateKeyState) {
     tmp_keyer_control |= (DAH_L | DIT_L) ;     
   else 
   {
-    if (settings::iambic_key)
+    if (ubitx::settings.iambic_key)
       tmp_keyer_control = 0 ;
     else if (paddle >= cw_adc_st_from && paddle <= cw_adc_st_to)
       tmp_keyer_control = DIT_L ;
@@ -151,7 +150,7 @@ void CwKeyerIambic() {
       case CHK_DIT:
         if (keyer_control & DIT_L) {
           keyer_control |= DIT_PROC;
-          ktimer = settings::cw_speed;
+          ktimer = ubitx::settings.cw_speed;
           keyerState = KEYED_PREP;
         } else {
           keyerState = CHK_DAH;
@@ -159,7 +158,7 @@ void CwKeyerIambic() {
         break;
       case CHK_DAH:
         if (keyer_control & DAH_L) {
-          ktimer = settings::cw_speed * 3;
+          ktimer = ubitx::settings.cw_speed * 3;
           keyerState = KEYED_PREP;
         } else {
           keyerState = IDLE;
@@ -182,7 +181,7 @@ void CwKeyerIambic() {
       case KEYED:
         if (millis() > ktimer) {  // are we at end of key down ?
           CwKeyUp();
-          ktimer = millis() + settings::cw_speed;  // inter-element time
+          ktimer = millis() + ubitx::settings.cw_speed;  // inter-element time
           keyerState = INTER_ELEMENT;  // next state
         } else if (keyer_control & IAMBICB) {
           UpdatePaddleLatch(1);  // early paddle latch in Iambic B mode
@@ -233,7 +232,7 @@ void CwKeyerStraight() {
 }
 
 void Run() {
-  if (settings::iambic_key) CwKeyerIambic();
+  if (ubitx::settings.iambic_key) CwKeyerIambic();
   else CwKeyerStraight();
 }
 

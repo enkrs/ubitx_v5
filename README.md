@@ -24,3 +24,6 @@ Program memory / global variables
   * 20052 / 1107 mainloop namespace
   * 20052 / 1107 menu namespace
   * 19966 / 1123 buttons/encoder converted to PORT from digitalRead
+  * 19854 / 1073 c++ structs
+  * 19916 / 1073 some c++ bools
+  * 19916 / 1073 settings struct

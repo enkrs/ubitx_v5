@@ -5,7 +5,6 @@
 #include "hw.h"
 #include "keyer.h"
 #include "menu.h"
-#include "settings.h"
 #include "ubitx.h"
 #include "ui.h"
 
@@ -14,12 +13,20 @@ namespace mainloop {
 Buttons buttons;
 
 // returns 1 if the button is pressed
-char BtnDown() {
-  //if (digitalRead(hw::FBUTTON) == HIGH)
-  // button must be down (0) for debounce_count samples in a row
-  for (int i = 0; i < debounce_count; i++)
-    if ((PINC & PC2_FBUTTON) != 0) return 0;
+// handles debounce
+char FBtnDown() {
+  char now = 0, prev = 0;
 
+  int i = 0;
+  do {
+    now = (PINC & PC2_FBUTTON);
+    if (prev != now) {
+      prev = now;
+      i = 0;
+    }
+  } while (i++ < debounce_count);
+
+  if (now) return 0; // pullup resistor pulls to 1 if button not pressed
   return 1;
 }
 
@@ -28,16 +35,6 @@ char PttDown() {
     if ((PINC & PC3_PTT) != 0) return 0;
 
   return 1;
-}
-
-void BtnWaitUp() {
-  // button must be up (1) for 10 samples in a row
-  int i = 0;
-  while (i < debounce_count) {
-    i++;
-    // reset counter if button down (0)
-    if ((PINC & PC2_FBUTTON) == 0) i = 0;
-  }
 }
 
 /**
@@ -70,20 +67,27 @@ void CheckTx() {
 }
 
 void CheckButtons() {
+  char prev_f_down = buttons.f_down;
+
+  buttons.f_down = FBtnDown();
+  if (prev_f_down == 1 and buttons.f_down != 1) {
+    // released
+    buttons.f_clicked = 1;
+  }
+
   buttons.ptt_down = PttDown();
-  buttons.f_down = BtnDown();
 
   if (menu::menu_state != 0) return; // menu handles its own button
-
-  if (!buttons.f_down) return;
-  BtnWaitUp(); buttons.f_down = 0;
- 
-  if (ubitx::in_tx) {
-    ubitx::TxStop(); // stop tx with button
-  } else {
-    menu::menu_state = 3;
-  }
 }
+
+char FButtonClicked() {
+  if (!buttons.f_clicked)
+    return 0;
+
+  buttons.f_clicked = 0;
+  return 1;
+}
+
 
 /**
  * The tuning jumps by 50 Hz on each step when you tune slowly
@@ -113,10 +117,10 @@ void DoTuning() {
       ubitx::frequency += knob * 50;
 
     if (prev_freq < 10000000l && ubitx::frequency >= 10000000l)
-      ubitx::status.is_usb = 1;
+      ubitx::status.is_usb = true;
       
     if (prev_freq >= 10000000l && ubitx::frequency < 10000000l)
-      ubitx::status.is_usb = 0;
+      ubitx::status.is_usb = false;
   }
 
   ubitx::SetFrequency(ubitx::frequency);
@@ -139,6 +143,14 @@ void Run() {
   CheckButtons();
 
   CheckTx();
+
+  if (!menu::menu_state && FButtonClicked()) {
+    if (ubitx::in_tx) {
+      ubitx::TxStop(); // stop tx with button
+    } else {
+      menu::menu_state = 3;
+    }
+  }
 
   if (menu::menu_state) {
     menu::DoMenu();
@@ -170,21 +182,21 @@ void setup() {
   ui::u8x8.draw1x2String(1, 1, "YL3AME"); 
 
   ubitx::InitSettings();
-  if (mainloop::BtnDown())
+  if (mainloop::FBtnDown())
     ubitx::ResetSettingsAndHalt();
 
   encoder::Init();
   ubitx::InitOscillators();
 
-  ubitx::SetFrequency(settings::vfo_a);
-  ubitx::SidebandSet(settings::vfo_a_usb);
+  ubitx::SetFrequency(ubitx::settings.vfo_a);
+  ubitx::SidebandSet(ubitx::settings.vfo_a_usb);
   ui::UpdateDisplay();
 }
 
 // Arduino loop function
 
 void loop() { 
-  //cat::Run();
-  //keyer::Run();
+  cat::Run();
+  keyer::Run();
   mainloop::Run();
 }

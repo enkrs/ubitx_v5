@@ -3,7 +3,6 @@
 #include "encoder.h"
 #include "hw.h"
 #include "mainloop.h"
-#include "settings.h"
 #include "si5351.h"
 #include "ubitx.h"
 #include "ui.h"
@@ -60,7 +59,7 @@ long int WaitKnobValue(long int minimum, long int maximum, long int step_size,
   long int knob_value = initial;
 
   screen_dirty = 1;
-  while (!mainloop::BtnDown()) {
+  while (!mainloop::FButtonClicked()) {
     knob = encoder::ReadSlow();
     if (knob != 0) {
       if (knob < 0) knob_value -= step_size;
@@ -87,7 +86,6 @@ long int WaitKnobValue(long int minimum, long int maximum, long int step_size,
       }
     }
   }
-  mainloop::BtnWaitUp();
 
   return knob_value;
 }
@@ -117,18 +115,17 @@ void MenuBand(int btn) {
   ui::PrintStatus(STR_BAND_SELECT);
   ubitx::RitDisable();
 
-  while (!mainloop::BtnDown()) {
+  while (!mainloop::FButtonClicked()) {
     knob = encoder::ReadSlow();
     if (knob != 0) {
       if (knob < 0 && ubitx::frequency - 100000l > ubitx::LOWEST_FREQ)
         ubitx::SetFrequency(ubitx::frequency - 100000l);
       if (knob > 0 && ubitx::frequency + 100000l < ubitx::HIGHEST_FREQ)
         ubitx::SetFrequency(ubitx::frequency + 100000l);
-      ubitx::status.is_usb = ubitx::frequency > 10000000l ? 1 : 0; // TODO call SidebandSet
+      ubitx::status.is_usb = ubitx::frequency > 10000000l ? true : false; // TODO call SidebandSet
       ui::UpdateDisplay();
     }
   }
-  mainloop::BtnWaitUp();
 
   menu_state = 1;
 }
@@ -155,7 +152,7 @@ void MenuRitToggle(int btn) {
 void MenuVfoToggle(int btn) {
   if (!btn) {
     if (NeedRedraw()) {
-      ui::PrintStatusValue("VFO", ubitx::status.vfo_active == ubitx::VFO_ACTIVE_A ? "A" : "B");
+      ui::PrintStatusValue("VFO", ubitx::status.vfo_a_active ? "A" : "B");
     }
     return;
   }
@@ -200,7 +197,7 @@ void MenuSplitToggle(int btn) {
 void MenuCwSpeed(int btn) {
   int wpm;
 
-  wpm = 1200 / settings::cw_speed;
+  wpm = 1200 / ubitx::settings.cw_speed;
 
   if (!btn) {
     if (NeedRedraw()) {
@@ -286,7 +283,7 @@ void MenuSetupCarrier(int btn) {
   DrawWaitKnobScreen("CALIBRATE BFO", "");
   // Values from 11000000 to 11099999
   carrier = 11000000 + WaitKnobValue(0, 99999, 1,
-                                     settings::usb_carrier - 11000000,
+                                     ubitx::settings.usb_carrier - 11000000,
                                      PreviewCarrier, 1);
   ubitx::SetUsbCarrier(carrier);
   menu_state = 1;
@@ -299,7 +296,7 @@ void PreviewSidetone(long int value) {
 void MenuSetupCwTone(int btn) {
   if (!btn) {
     if (NeedRedraw()) {
-      itoa(settings::cw_side_tone, b, 10);
+      itoa(ubitx::settings.cw_side_tone, b, 10);
       strcat(b, " HZ");
       ui::PrintStatusValue(STR_CW_TONE, b);
     }
@@ -307,7 +304,7 @@ void MenuSetupCwTone(int btn) {
   }
 
   DrawWaitKnobScreen(STR_CW_TONE, "HZ");
-  unsigned int tone = WaitKnobValue(100, 2000, 10, settings::cw_side_tone,
+  unsigned int tone = WaitKnobValue(100, 2000, 10, ubitx::settings.cw_side_tone,
                                     PreviewSidetone, 0);
   noTone(hw::CW_TONE);
   ubitx::CwToneSet(tone);
@@ -343,13 +340,13 @@ void PreviewKeyer(long int value) {
 void MenuSetupKeyer(int btn) {
   if (!btn) {
     if (NeedRedraw())
-      ui::PrintStatusValue(STR_CW_KEY, STRS_IAMBIC[settings::iambic_key]);
+      ui::PrintStatusValue(STR_CW_KEY, STRS_IAMBIC[ubitx::settings.iambic_key]);
     return;
   }
 
   DrawWaitKnobScreen(STR_CW_KEY, "");
 
-  ubitx::IambicKeySet(WaitKnobValue(0, 2, 1, settings::iambic_key,
+  ubitx::IambicKeySet(WaitKnobValue(0, 2, 1, ubitx::settings.iambic_key,
                                     PreviewKeyer, 1));
 
   menu_state = 1;
@@ -400,17 +397,13 @@ int select, active;
 
 void DoMenu() {
   if (menu_state == 3) { // first entry
-    mainloop::BtnWaitUp();
-
     menu_state = 2;
     select = 0;
     active = -1;
     screen_dirty = 1;
   }
 
-  int btnState = mainloop::BtnDown();
-  if (btnState)
-    mainloop::BtnWaitUp();
+  int btnState = mainloop::FButtonClicked();
 
   select += encoder::ReadSlow();
   if (extended_menu && select > 159)

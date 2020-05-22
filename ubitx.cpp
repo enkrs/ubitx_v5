@@ -39,7 +39,6 @@
 #include "keyer.h"
 #include "mainloop.h"
 #include "menu.h"
-#include "settings.h"
 #include "si5351.h"
 #include "ui.h"
 
@@ -60,6 +59,7 @@ namespace ubitx {
 unsigned long first_if;
 
 Status status;
+Settings settings;
 
 int cw_delay_time;
 
@@ -151,10 +151,10 @@ void SetFrequency(unsigned long f) {
 
   if (status.is_usb) {
     si5351::SetFreq(2, first_if + f);
-    si5351::SetFreq(1, first_if + settings::usb_carrier);
+    si5351::SetFreq(1, first_if + settings.usb_carrier);
   } else{
     si5351::SetFreq(2, first_if + f);
-    si5351::SetFreq(1, first_if - settings::usb_carrier);
+    si5351::SetFreq(1, first_if - settings.usb_carrier);
   }
     
   frequency = f;
@@ -188,9 +188,9 @@ void TxStart(char tx_mode) {
     //the key up and key down will toggle the carrier unbalancing
     //the exact cw frequency is the tuned frequency + sidetone
     if (status.is_usb)
-      si5351::SetFreq(2, frequency + settings::cw_side_tone);
+      si5351::SetFreq(2, frequency + settings.cw_side_tone);
     else
-      si5351::SetFreq(2, frequency - settings::cw_side_tone); 
+      si5351::SetFreq(2, frequency - settings.cw_side_tone); 
   }
   ui::UpdateDisplay();
 }
@@ -199,7 +199,7 @@ void TxStop() {
   in_tx = 0;
 
   digitalWrite(hw::TX_RX, 0);
-  si5351::SetFreq(0, settings::usb_carrier);  //set back the carrrier oscillator, cw tx switches it off
+  si5351::SetFreq(0, settings.usb_carrier);  //set back the carrrier oscillator, cw tx switches it off
 
   if (status.shift_mode == SHIFT_RIT ) { // rit
     frequency = rit_rx_frequency;
@@ -230,51 +230,51 @@ void RitDisable() {
 }
 
 void CwSpeedSet(unsigned int speed) {
-  settings::cw_speed = speed;
-  EEPROM.put(eeprom::CW_SPEED, settings::cw_speed);
+  settings.cw_speed = speed;
+  EEPROM.put(eeprom::CW_SPEED, settings.cw_speed);
 }
 
 void CwToneSet(unsigned int tone) {
-  settings::cw_side_tone = tone;
-  EEPROM.put(eeprom::CW_SIDE_TONE, settings::cw_side_tone);
+  settings.cw_side_tone = tone;
+  EEPROM.put(eeprom::CW_SIDE_TONE, settings.cw_side_tone);
 }
 
 void IambicKeySet(unsigned char key) {
-  settings::iambic_key = key;
-  EEPROM.put(eeprom::IAMBIC_KEY, settings::iambic_key);
+  settings.iambic_key = key;
+  EEPROM.put(eeprom::IAMBIC_KEY, settings.iambic_key);
 
-  if (settings::iambic_key == 1)
+  if (settings.iambic_key == 1)
     keyer::keyer_control &= ~0x10;  // IAMBICB bit
-  if (settings::iambic_key == 2)
+  if (settings.iambic_key == 2)
     keyer::keyer_control |= 0x10;  // IAMBICB bit
 }
 
 
-void SidebandSet(char usb) {
+void SidebandSet(bool usb) {
   status.is_usb = usb;
   SetFrequency(frequency);
 }
 
 void VfoSwap(unsigned char save) {
   RitDisable();
-  if (status.vfo_active == VFO_ACTIVE_A) {
-    settings::vfo_a = frequency;
-    settings::vfo_a_usb = status.is_usb;
-    if (save) EEPROM.put(eeprom::VFO_A, settings::vfo_a);
-    if (save) EEPROM.put(eeprom::VFO_A_USB, settings::vfo_a_usb);
+  if (status.vfo_a_active) {
+    settings.vfo_a = frequency;
+    settings.vfo_a_usb = status.is_usb;
+    if (save) EEPROM.put(eeprom::VFO_A, settings.vfo_a);
+    if (save) EEPROM.put(eeprom::VFO_A_USB, settings.vfo_a_usb);
 
-    status.vfo_active = VFO_ACTIVE_B;
-    frequency = settings::vfo_b;
-    status.is_usb = settings::vfo_b_usb;
+    status.vfo_a_active = false;
+    frequency = settings.vfo_b;
+    status.is_usb = settings.vfo_b_usb;
   } else {
-    settings::vfo_b = frequency;
-    settings::vfo_b_usb = status.is_usb;
-    if (save) EEPROM.put(eeprom::VFO_B, settings::vfo_b);
-    if (save) EEPROM.put(eeprom::VFO_B_USB, settings::vfo_b_usb);
+    settings.vfo_b = frequency;
+    settings.vfo_b_usb = status.is_usb;
+    if (save) EEPROM.put(eeprom::VFO_B, settings.vfo_b);
+    if (save) EEPROM.put(eeprom::VFO_B_USB, settings.vfo_b_usb);
 
-    status.vfo_active = VFO_ACTIVE_A;
-    frequency = settings::vfo_a;
-    status.is_usb = settings::vfo_a_usb;
+    status.vfo_a_active = true;
+    frequency = settings.vfo_a;
+    status.is_usb = settings.vfo_a_usb;
   }
   SetFrequency(frequency);
 }
@@ -290,10 +290,10 @@ void SplitDisable() {
 }
 
 void SetUsbCarrier(unsigned long long carrier) {
-  settings::usb_carrier = carrier;
-  EEPROM.put(eeprom::USB_CARRIER, settings::usb_carrier);
+  settings.usb_carrier = carrier;
+  EEPROM.put(eeprom::USB_CARRIER, settings.usb_carrier);
 
-  si5351::SetFreq(0, settings::usb_carrier);
+  si5351::SetFreq(0, settings.usb_carrier);
   SetFrequency(frequency);
 }
 
@@ -302,30 +302,30 @@ void SetUsbCarrier(unsigned long long carrier) {
  */
 
 void ResetSettingsAndHalt() {
-  settings::master_cal = 154117;
-  settings::usb_carrier = 11056273l;
-  settings::cw_side_tone = 800;
-  settings::vfo_a = 3573000l;
-  settings::vfo_b = 7074000l;
-  settings::cw_speed = 100;
-  settings::vfo_a_usb = 1;
-  settings::vfo_b_usb = 1;
-  settings::iambic_key = 1;
+  settings.master_cal = 154117;
+  settings.usb_carrier = 11056273l;
+  settings.cw_side_tone = 800;
+  settings.vfo_a = 3573000l;
+  settings.vfo_b = 7074000l;
+  settings.cw_speed = 100;
+  settings.vfo_a_usb = true;
+  settings.vfo_b_usb = true;
+  settings.iambic_key = 1;
 
   // Before type change
   // Sketch uses 18520 bytes (60%) of program storage space. Maximum is 30720 bytes.
   // Global variables use 1027 bytes (50%) of dynamic memory, leaving 1021 bytes for local variables. Maximum is 2048 bytes.
   // NEXT        18580 - 60 bytes more.. crazy..
 
-  EEPROM.put(eeprom::MASTER_CAL, settings::master_cal);
-  EEPROM.put(eeprom::USB_CARRIER, settings::usb_carrier);
-  EEPROM.put(eeprom::CW_SIDE_TONE, settings::cw_side_tone);
-  EEPROM.put(eeprom::VFO_A, settings::vfo_a);
-  EEPROM.put(eeprom::VFO_B, settings::vfo_b);
-  EEPROM.put(eeprom::CW_SPEED, settings::cw_speed);
-  EEPROM.put(eeprom::VFO_A_USB, settings::vfo_a_usb);
-  EEPROM.put(eeprom::VFO_B_USB, settings::vfo_b_usb);
-  EEPROM.put(eeprom::IAMBIC_KEY, settings::iambic_key);
+  EEPROM.put(eeprom::MASTER_CAL, settings.master_cal);
+  EEPROM.put(eeprom::USB_CARRIER, settings.usb_carrier);
+  EEPROM.put(eeprom::CW_SIDE_TONE, settings.cw_side_tone);
+  EEPROM.put(eeprom::VFO_A, settings.vfo_a);
+  EEPROM.put(eeprom::VFO_B, settings.vfo_b);
+  EEPROM.put(eeprom::CW_SPEED, settings.cw_speed);
+  EEPROM.put(eeprom::VFO_A_USB, settings.vfo_a_usb);
+  EEPROM.put(eeprom::VFO_B_USB, settings.vfo_b_usb);
+  EEPROM.put(eeprom::IAMBIC_KEY, settings.iambic_key);
 
   char magicNr = eeprom::MAGIC_NR; // TODO unneded variable
   EEPROM.put(eeprom::MAGIC_ADDR, magicNr);
@@ -350,15 +350,15 @@ void InitSettings() {
     return;
   }
 
-  EEPROM.get(eeprom::MASTER_CAL, settings::master_cal);
-  EEPROM.get(eeprom::USB_CARRIER, settings::usb_carrier);
-  EEPROM.get(eeprom::CW_SIDE_TONE, settings::cw_side_tone);
-  EEPROM.get(eeprom::VFO_A, settings::vfo_a);
-  EEPROM.get(eeprom::VFO_B, settings::vfo_b);
-  EEPROM.get(eeprom::CW_SPEED, settings::cw_speed);
-  EEPROM.get(eeprom::VFO_A_USB, settings::vfo_a_usb);
-  EEPROM.get(eeprom::VFO_B_USB, settings::vfo_b_usb);
-  EEPROM.get(eeprom::IAMBIC_KEY, settings::iambic_key);
+  EEPROM.get(eeprom::MASTER_CAL, settings.master_cal);
+  EEPROM.get(eeprom::USB_CARRIER, settings.usb_carrier);
+  EEPROM.get(eeprom::CW_SIDE_TONE, settings.cw_side_tone);
+  EEPROM.get(eeprom::VFO_A, settings.vfo_a);
+  EEPROM.get(eeprom::VFO_B, settings.vfo_b);
+  EEPROM.get(eeprom::CW_SPEED, settings.cw_speed);
+  EEPROM.get(eeprom::VFO_A_USB, settings.vfo_a_usb);
+  EEPROM.get(eeprom::VFO_B_USB, settings.vfo_b_usb);
+  EEPROM.get(eeprom::IAMBIC_KEY, settings.iambic_key);
 
   // TODO - EEPROM
   first_if = 45005000L; // should be eeprom
@@ -367,21 +367,21 @@ void InitSettings() {
 
   // calculate internal variables
   status.tx_inhibit = 0;
-  status.vfo_active = VFO_ACTIVE_A;
-  status.is_usb = settings::vfo_a_usb;
+  status.vfo_a_active = true;
+  status.is_usb = settings.vfo_a_usb;
   status.shift_mode = SHIFT_NONE;
 
-   if (settings::iambic_key == 1)
+   if (settings.iambic_key == 1)
      keyer::keyer_control &= ~0x10;
-   else if (settings::iambic_key == 2)
+   else if (settings.iambic_key == 2)
      keyer::keyer_control |= 0x10;
 }
 
 void InitOscillators() {
   //initialize the SI5351
   si5351::Init();
-  si5351::SetCalibration(settings::master_cal);
-  si5351::SetFreq(0, settings::usb_carrier);
+  si5351::SetCalibration(settings.master_cal);
+  si5351::SetFreq(0, settings.usb_carrier);
 }
 
 void InitPorts() {

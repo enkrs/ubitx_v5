@@ -73,7 +73,7 @@ void UpdateDisplay() {
     u8x8.draw1x2Glyph(10, 1, ' ');
 
     u8x8.draw1x2String(11, 1, ubitx::status.is_usb ? "USB " : "LSB ");
-    u8x8.draw1x2Glyph(15, 1, ubitx::status.vfo_active == ubitx::VFO_ACTIVE_A ? 'A' : 'B');
+    u8x8.draw1x2Glyph(15, 1, ubitx::status.vfo_a_active ? 'A' : 'B');
   }
 
   char b[11]; // holds string up to "4294967295\0"

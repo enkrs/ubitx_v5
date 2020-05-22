@@ -53,13 +53,24 @@ const int VFO_ACTIVE_B = 1;
 
 extern int cw_delay_time;
 
-struct Status { // TODO try extern...
+extern struct Status {
   unsigned char shift_mode;
-  unsigned char vfo_active;
-  unsigned char is_usb;
-  unsigned char tx_inhibit;
-};
-extern Status status;
+  bool vfo_a_active;
+  bool is_usb;
+  bool tx_inhibit;
+} status;
+
+extern struct Settings {
+  long master_cal;
+  unsigned long usb_carrier;
+  unsigned int cw_side_tone;
+  unsigned long vfo_a;
+  unsigned long vfo_b;
+  unsigned int cw_speed;
+  bool vfo_a_usb;
+  bool vfo_b_usb;
+  unsigned char iambic_key;
+} settings;
 
 extern unsigned long frequency;
 
@@ -81,7 +92,7 @@ void CwSpeedSet(unsigned int wpm);
 void CwToneSet(unsigned int tone);
 void SetFrequency(unsigned long f);
 void SetUsbCarrier(unsigned long long carrier);
-void SidebandSet(char usb);
+void SidebandSet(bool usb);
 void IambicKeySet(unsigned char key);
 void SplitDisable();
 void SplitEnable();

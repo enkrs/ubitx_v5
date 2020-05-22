@@ -10,7 +10,6 @@
  */
 #include "cat.h"
 #include <Arduino.h>
-#include "settings.h"
 #include "ubitx.h"
 #include "ui.h"
 
@@ -147,7 +146,7 @@ void CatReadEeprom() {
       // 5 : Memory/MTUNE select  0 = Memory, 1 = MTUNE
       // 6 :
       // 7 : MEM/VFO Select  0 = Memory, 1 = VFO (A or B - see bit 0)
-      cat[0] = 0x80 + (ubitx::status.vfo_active == ubitx::VFO_ACTIVE_B ? 1 : 0);
+      cat[0] = 0x80 + (ubitx::status.vfo_a_active ? 0 : 1);
       cat[1] = 0x00;
       break;
     case 0x57:
@@ -169,7 +168,7 @@ void CatReadEeprom() {
       // 5-4 :  Lock Mode (#32) 00 = Dial, 01 = Freq, 10 = Panel
       // 7-6 :  Op Filter (#38) 00 = Off, 01 = SSB, 10 = CW
       // CAT_BUFF[0] = 0x08;
-      cat[0] = (settings::cw_side_tone - 300)/50;
+      cat[0] = (ubitx::settings.cw_side_tone - 300)/50;
       cat[1] = 0x25;
       break;
     case 0x61:  // Sidetone (Volume) (#44)
@@ -192,7 +191,7 @@ void CatReadEeprom() {
       // 5-0  CW Speed (4-60 WPM) (#21) From 0 to 38 (HEX) with 0 = 4 WPM and 38 = 60 WPM (1 WPM steps)
       // 7-6  Batt-Chg (6/8/10 Hours (#11)  00 = 6 Hours, 01 = 8 Hours, 10 = 10 Hours
       // CAT_BUFF[0] = 0x08;
-      cat[0] = 1200 / settings::cw_speed - 4;
+      cat[0] = 1200 / ubitx::settings.cw_speed - 4;
       cat[1] = 0xB2;
       break;
     case 0x63:

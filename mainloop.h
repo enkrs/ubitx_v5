@@ -16,8 +16,8 @@ struct Buttons {
 
 extern Buttons buttons;
 
-char BtnDown();
-void BtnWaitUp();
+char FButtonClicked();
+char FBtnDown();
 void Run();
 
 }  // namespace
