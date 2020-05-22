@@ -34,6 +34,7 @@ namespace keyer {
 
 char key_down = 0;  //in cw mode, denotes the carrier is being transmitted
                     //frequency when it crosses the frequency border of 10 MHz
+char keyer_control;
 
 unsigned long cw_timeout = 0;  //milliseconds to go before the cw transmit line is released and the radio goes back to rx mode
 
@@ -117,7 +118,7 @@ char UpdatePaddleLatch(char isUpdateKeyState) {
   }
   
   if (isUpdateKeyState == 1)
-    ubitx::keyer_control |= tmp_keyer_control;
+    keyer_control |= tmp_keyer_control;
 
   return tmp_keyer_control;
 }
@@ -136,7 +137,7 @@ void CwKeyerIambic() {
         if (tmp_keyer_control == DAH_L ||
             tmp_keyer_control == DIT_L || 
             tmp_keyer_control == (DAH_L | DIT_L) ||
-            (ubitx::keyer_control & 0x03)) {
+            (keyer_control & 0x03)) {
             UpdatePaddleLatch(1);
             keyerState = CHK_DIT;
         } else {
@@ -148,8 +149,8 @@ void CwKeyerIambic() {
         }
         break;
       case CHK_DIT:
-        if (ubitx::keyer_control & DIT_L) {
-          ubitx::keyer_control |= DIT_PROC;
+        if (keyer_control & DIT_L) {
+          keyer_control |= DIT_PROC;
           ktimer = settings::cw_speed;
           keyerState = KEYED_PREP;
         } else {
@@ -157,7 +158,7 @@ void CwKeyerIambic() {
         }
         break;
       case CHK_DAH:
-        if (ubitx::keyer_control & DAH_L) {
+        if (keyer_control & DAH_L) {
           ktimer = settings::cw_speed * 3;
           keyerState = KEYED_PREP;
         } else {
@@ -173,7 +174,7 @@ void CwKeyerIambic() {
           ubitx::TxStart(ubitx::TX_CW);
         }
         ktimer += millis();  // set ktimer to interval end time
-        ubitx::keyer_control &= ~(DIT_L + DAH_L);  // clear both paddle latch bits
+        keyer_control &= ~(DIT_L + DAH_L);  // clear both paddle latch bits
         keyerState = KEYED;  // next state
         
         CwKeydown();
@@ -183,18 +184,18 @@ void CwKeyerIambic() {
           CwKeyUp();
           ktimer = millis() + settings::cw_speed;  // inter-element time
           keyerState = INTER_ELEMENT;  // next state
-        } else if (ubitx::keyer_control & IAMBICB) {
+        } else if (keyer_control & IAMBICB) {
           UpdatePaddleLatch(1);  // early paddle latch in Iambic B mode
         }
         break;
       case INTER_ELEMENT:  // Insert time between dits/dahs
         UpdatePaddleLatch(1);  // latch paddle state
         if (millis() > ktimer) {  // are we at end of inter-space ?
-          if (ubitx::keyer_control & DIT_PROC) {  // was it a dit or dah ?
-            ubitx::keyer_control &= ~(DIT_L + DIT_PROC);  // clear two bits
+          if (keyer_control & DIT_PROC) {  // was it a dit or dah ?
+            keyer_control &= ~(DIT_L + DIT_PROC);  // clear two bits
             keyerState = CHK_DAH;  // dit done, check for dah
           } else {
-            ubitx::keyer_control &= ~(DAH_L);  // clear dah latch
+            keyer_control &= ~(DAH_L);  // clear dah latch
             keyerState = IDLE;  // go idle
           }
         }

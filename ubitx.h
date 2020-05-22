@@ -50,12 +50,16 @@ const int SHIFT_SPLIT = 2;
 const int VFO_ACTIVE_A = 0;
 const int VFO_ACTIVE_B = 1;
 
-extern char shift_mode;
-extern char vfo_active;
+
 extern int cw_delay_time;
-extern char is_usb;
-extern char keyer_control;
-extern char tx_inhibit;
+
+struct Status { // TODO try extern...
+  unsigned char shift_mode;
+  unsigned char vfo_active;
+  unsigned char is_usb;
+  unsigned char tx_inhibit;
+};
+extern Status status;
 
 extern unsigned long frequency;
 

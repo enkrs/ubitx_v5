@@ -7,6 +7,7 @@
 #include <U8x8lib.h>
 #include "hw.h"
 #include "ubitx.h"
+#include "mainloop.h"
 #include "keyer.h"
 
 namespace ui {
@@ -15,26 +16,6 @@ unsigned long last_v_update = 0;
 int prev_voltage = -1;
 
 U8X8_SSD1306_128X64_NONAME_HW_I2C u8x8(U8X8_PIN_NONE);
-
-// returns 1 if the button is pressed
-char BtnDown() {
-  //if (digitalRead(hw::FBUTTON) == HIGH)
-  // button must be down (0) for debounce_count samples in a row
-  for (int i = 0; i < debounce_count; i++)
-    if ((PINC & (1<<PC2)) != 0) return 0;
-
-  return 1;
-}
-
-void BtnWaitUp() {
-  // button must be up (1) for 10 samples in a row
-  int i = 0;
-  while (i < debounce_count) {
-    i++;
-    // reset counter if button down (0)
-    if ((PINC & (1<<PC2)) == 0) i = 0;
-  }
-}
 
 // The generic routine to display one line on the LCD
 void PrintLine(unsigned char linenmbr, const char *c) {
@@ -78,7 +59,7 @@ void UpdateDisplay() {
     // 123456789012345
     // ______RIT_USB_A
     //           13.7V
-    switch (ubitx::shift_mode) {
+    switch (ubitx::status.shift_mode) {
       case 0:
         u8x8.draw1x2String(7, 1, "   ");
         break;
@@ -91,8 +72,8 @@ void UpdateDisplay() {
     }
     u8x8.draw1x2Glyph(10, 1, ' ');
 
-    u8x8.draw1x2String(11, 1, ubitx::is_usb ? "USB " : "LSB ");
-    u8x8.draw1x2Glyph(15, 1, ubitx::vfo_active == ubitx::VFO_ACTIVE_A ? 'A' : 'B');
+    u8x8.draw1x2String(11, 1, ubitx::status.is_usb ? "USB " : "LSB ");
+    u8x8.draw1x2Glyph(15, 1, ubitx::status.vfo_active == ubitx::VFO_ACTIVE_A ? 'A' : 'B');
   }
 
   char b[11]; // holds string up to "4294967295\0"

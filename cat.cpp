@@ -147,7 +147,7 @@ void CatReadEeprom() {
       // 5 : Memory/MTUNE select  0 = Memory, 1 = MTUNE
       // 6 :
       // 7 : MEM/VFO Select  0 = Memory, 1 = VFO (A or B - see bit 0)
-      cat[0] = 0x80 + (ubitx::vfo_active == ubitx::VFO_ACTIVE_B ? 1 : 0);
+      cat[0] = 0x80 + (ubitx::status.vfo_active == ubitx::VFO_ACTIVE_B ? 1 : 0);
       cat[1] = 0x00;
       break;
     case 0x57:
@@ -206,7 +206,7 @@ void CatReadEeprom() {
       cat[1] = 0xB2;
       break;      case 0x69 : // FM Mic (#29)  Contains 0-100 (decimal) as displayed
     case 0x78:
-      cat[0] = ubitx::is_usb ? CAT_MODE_USB : CAT_MODE_LSB;
+      cat[0] = ubitx::status.is_usb ? CAT_MODE_USB : CAT_MODE_LSB;
       if (cat[0] != 0) cat[0] = 1 << 5;
       break;
     case  0x79:
@@ -228,7 +228,7 @@ void CatReadEeprom() {
       // 7A  6 ? ?
       // 7A  7 SPL On/Off  0 = Off, 1 = On
 
-      cat[0] = (ubitx::shift_mode == ubitx::SHIFT_SPLIT ? 0xFF : 0x7F);
+      cat[0] = (ubitx::status.shift_mode == ubitx::SHIFT_SPLIT ? 0xFF : 0x7F);
       break;
     case 0xB3:
       cat[0] = 0x00;
@@ -258,7 +258,7 @@ void ProcessCatCommand(char* cmd) {
       break;
     case 0x03:
       WriteFreq(ubitx::frequency, response); // Put the frequency into the buffer
-      response[4] = ubitx::is_usb ? 0x01 : 0x00;
+      response[4] = ubitx::status.is_usb ? 0x01 : 0x00;
       Serial.write(response, 5);
       break;
     case 0x07:  // set mode
@@ -311,7 +311,7 @@ void ProcessCatCommand(char* cmd) {
       // from souce code in ft817.c (hamlib)
       response[0] = ((ubitx::in_tx ? 0 : 1) << 7) +
         ((isHighSWR ? 1 : 0) << 6) +  // hi swr off / on
-        ((ubitx::shift_mode == ubitx::SHIFT_SPLIT ? 1 : 0) << 5) + // Split on / off
+        ((ubitx::status.shift_mode == ubitx::SHIFT_SPLIT ? 1 : 0) << 5) + // Split on / off
         (0 << 4) +  // dummy data
         0x08;  // P0 meter data
 

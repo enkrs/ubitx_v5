@@ -2,6 +2,7 @@
 #include <Arduino.h>
 #include "encoder.h"
 #include "hw.h"
+#include "mainloop.h"
 #include "settings.h"
 #include "si5351.h"
 #include "ubitx.h"
@@ -59,7 +60,7 @@ long int WaitKnobValue(long int minimum, long int maximum, long int step_size,
   long int knob_value = initial;
 
   screen_dirty = 1;
-  while (!ui::BtnDown()) {
+  while (!mainloop::BtnDown()) {
     knob = encoder::ReadSlow();
     if (knob != 0) {
       if (knob < 0) knob_value -= step_size;
@@ -86,7 +87,7 @@ long int WaitKnobValue(long int minimum, long int maximum, long int step_size,
       }
     }
   }
-  ui::BtnWaitUp();
+  mainloop::BtnWaitUp();
 
   return knob_value;
 }
@@ -116,18 +117,18 @@ void MenuBand(int btn) {
   ui::PrintStatus(STR_BAND_SELECT);
   ubitx::RitDisable();
 
-  while (!ui::BtnDown()) {
+  while (!mainloop::BtnDown()) {
     knob = encoder::ReadSlow();
     if (knob != 0) {
       if (knob < 0 && ubitx::frequency - 100000l > ubitx::LOWEST_FREQ)
         ubitx::SetFrequency(ubitx::frequency - 100000l);
       if (knob > 0 && ubitx::frequency + 100000l < ubitx::HIGHEST_FREQ)
         ubitx::SetFrequency(ubitx::frequency + 100000l);
-      ubitx::is_usb = ubitx::frequency > 10000000l ? 1 : 0; // TODO call SidebandSet
+      ubitx::status.is_usb = ubitx::frequency > 10000000l ? 1 : 0; // TODO call SidebandSet
       ui::UpdateDisplay();
     }
   }
-  ui::BtnWaitUp();
+  mainloop::BtnWaitUp();
 
   menu_state = 1;
 }
@@ -136,12 +137,12 @@ void MenuBand(int btn) {
 void MenuRitToggle(int btn) {
   if (!btn) {
     if (NeedRedraw()) {
-      ui::PrintStatusValue("RIT", ubitx::shift_mode == ubitx::SHIFT_RIT ? STR_ON : STR_OFF);
+      ui::PrintStatusValue("RIT", ubitx::status.shift_mode == ubitx::SHIFT_RIT ? STR_ON : STR_OFF);
     }
     return;
   }
 
-  if (ubitx::shift_mode == ubitx::SHIFT_RIT)
+  if (ubitx::status.shift_mode == ubitx::SHIFT_RIT)
     ubitx::RitDisable();
   else
     ubitx::RitEnable(ubitx::frequency);
@@ -154,7 +155,7 @@ void MenuRitToggle(int btn) {
 void MenuVfoToggle(int btn) {
   if (!btn) {
     if (NeedRedraw()) {
-      ui::PrintStatusValue("VFO", ubitx::vfo_active == ubitx::VFO_ACTIVE_A ? "A" : "B");
+      ui::PrintStatusValue("VFO", ubitx::status.vfo_active == ubitx::VFO_ACTIVE_A ? "A" : "B");
     }
     return;
   }
@@ -168,15 +169,12 @@ void MenuVfoToggle(int btn) {
 void MenuSidebandToggle(int btn) {
   if (!btn) {
     if (NeedRedraw()) {
-      ui::PrintStatusValue("MODE", ubitx::is_usb ? "USB" : "LSB");
+      ui::PrintStatusValue("MODE", ubitx::status.is_usb ? "USB" : "LSB");
     }
     return;
   }
 
-  if (ubitx::is_usb)
-    ubitx::SidebandSet(0);
-  else
-    ubitx::SidebandSet(1);
+  ubitx::SidebandSet(!ubitx::status.is_usb);
 
   menu_state = 1;
 }
@@ -186,12 +184,12 @@ void MenuSidebandToggle(int btn) {
 void MenuSplitToggle(int btn) {
   if (!btn) {
     if (NeedRedraw()) {
-      ui::PrintStatusValue("SPLIT", ubitx::shift_mode == ubitx::SHIFT_SPLIT ? STR_ON : STR_OFF);
+      ui::PrintStatusValue("SPLIT", ubitx::status.shift_mode == ubitx::SHIFT_SPLIT ? STR_ON : STR_OFF);
     }
     return;
   }
 
-  if (ubitx::shift_mode == ubitx::SHIFT_SPLIT)
+  if (ubitx::status.shift_mode == ubitx::SHIFT_SPLIT)
     ubitx::SplitDisable();
   else
     ubitx::SplitEnable();
@@ -360,15 +358,12 @@ void MenuSetupKeyer(int btn) {
 void MenuTxToggle(int btn) {
   if (!btn) {
     if (NeedRedraw()) {
-      ui::PrintStatusValue("TX INHIBIT", ubitx::tx_inhibit ? STR_ON : STR_OFF);
+      ui::PrintStatusValue("TX INHIBIT", ubitx::status.tx_inhibit ? STR_ON : STR_OFF);
     }
     return;
   }
 
-  if (ubitx::tx_inhibit)
-    ubitx::tx_inhibit = 0;
-  else
-    ubitx::tx_inhibit = 1;
+  ubitx::status.tx_inhibit = !ubitx::status.tx_inhibit;
 
   menu_state = 1;
 }
@@ -405,7 +400,7 @@ int select, active;
 
 void DoMenu() {
   if (menu_state == 3) { // first entry
-    ui::BtnWaitUp();
+    mainloop::BtnWaitUp();
 
     menu_state = 2;
     select = 0;
@@ -413,9 +408,9 @@ void DoMenu() {
     screen_dirty = 1;
   }
 
-  int btnState = ui::BtnDown();
+  int btnState = mainloop::BtnDown();
   if (btnState)
-    ui::BtnWaitUp();
+    mainloop::BtnWaitUp();
 
   select += encoder::ReadSlow();
   if (extended_menu && select > 159)

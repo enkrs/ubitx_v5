@@ -1,6 +1,9 @@
 #ifndef HARDWARE_H_
 #define HARDWARE_H_
 
+#define PC2_FBUTTON (1<<PC2)
+#define PC3_PTT     (1<<PC3)
+
 namespace hw {
 
 /**

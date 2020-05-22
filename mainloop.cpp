@@ -6,11 +6,39 @@
 #include "keyer.h"
 #include "menu.h"
 #include "settings.h"
-#include "si5351.h"
 #include "ubitx.h"
 #include "ui.h"
 
 namespace mainloop {
+
+Buttons buttons;
+
+// returns 1 if the button is pressed
+char BtnDown() {
+  //if (digitalRead(hw::FBUTTON) == HIGH)
+  // button must be down (0) for debounce_count samples in a row
+  for (int i = 0; i < debounce_count; i++)
+    if ((PINC & PC2_FBUTTON) != 0) return 0;
+
+  return 1;
+}
+
+char PttDown() {
+  for (int i = 0; i < debounce_count; i++)
+    if ((PINC & PC3_PTT) != 0) return 0;
+
+  return 1;
+}
+
+void BtnWaitUp() {
+  // button must be up (1) for 10 samples in a row
+  int i = 0;
+  while (i < debounce_count) {
+    i++;
+    // reset counter if button down (0)
+    if ((PINC & PC2_FBUTTON) == 0) i = 0;
+  }
+}
 
 /**
  * The PTT is checked only if we are not already in a cw transmit session
@@ -18,7 +46,7 @@ namespace mainloop {
  * flip the T/R line to T and update the display to denote transmission
  */
 
-void CheckPtt() {	
+void CheckTx() {	
   //we don't check for ptt when transmitting cw
   if (keyer::cw_timeout > 0)
     return;
@@ -26,26 +54,29 @@ void CheckPtt() {
   if (cat::tx_cat)
     return;
     
-  if (ubitx::in_tx == 0 && (PINC & (1<<PC3)) == 0) {
-    for (int i = 0; i < ui::debounce_count; i++)
-      if ((PINC & (1<<PC3)) != 0) return;  // debounce
+  if (ubitx::in_tx == 0 && (PINC & PC3_PTT) == 0) {
+    for (int i = 0; i < debounce_count; i++)
+      if ((PINC & PC3_PTT) != 0) return;  // debounce
     ubitx::TxStart(ubitx::TX_SSB);
     return;
   }
 	
-  if (ubitx::in_tx == 1 && (PINC & (1<<PC3)) != 0) {
-    for (int i = 0; i < ui::debounce_count; i++)
-      if ((PINC & (1<<PC3)) == 0) return;  // debounce
+  if (ubitx::in_tx == 1 && (PINC & PC3_PTT) != 0) {
+    for (int i = 0; i < debounce_count; i++)
+      if ((PINC & PC3_PTT) == 0) return;  // debounce
     ubitx::TxStop();
     return;
   }
 }
 
-void CheckButton() {
+void CheckButtons() {
+  buttons.ptt_down = PttDown();
+  buttons.f_down = BtnDown();
+
   if (menu::menu_state != 0) return; // menu handles its own button
 
-  if (!ui::BtnDown()) return;
-  ui::BtnWaitUp();
+  if (!buttons.f_down) return;
+  BtnWaitUp(); buttons.f_down = 0;
  
   if (ubitx::in_tx) {
     ubitx::TxStop(); // stop tx with button
@@ -67,7 +98,7 @@ void DoTuning() {
 
   if (knob == 0) return;
 
-  if (ubitx::shift_mode == ubitx::SHIFT_RIT) {
+  if (ubitx::status.shift_mode == ubitx::SHIFT_RIT) {
     // Rit tuning
     if (knob < 0)
       ubitx::frequency -= 100l;
@@ -82,10 +113,10 @@ void DoTuning() {
       ubitx::frequency += knob * 50;
 
     if (prev_freq < 10000000l && ubitx::frequency >= 10000000l)
-      ubitx::is_usb = 1;
+      ubitx::status.is_usb = 1;
       
     if (prev_freq >= 10000000l && ubitx::frequency < 10000000l)
-      ubitx::is_usb = 0;
+      ubitx::status.is_usb = 0;
   }
 
   ubitx::SetFrequency(ubitx::frequency);
@@ -105,8 +136,9 @@ void DoTuning() {
 //                 > F_HOLD
 
 void Run() {
-  CheckPtt();
-  CheckButton();
+  CheckButtons();
+
+  CheckTx();
 
   if (menu::menu_state) {
     menu::DoMenu();
@@ -126,6 +158,7 @@ void setup() {
   Serial.flush();  
 
   ubitx::InitPorts();     
+  memset(&mainloop::buttons, 0, sizeof(mainloop::buttons));
   
   ui::u8x8.begin();
   // the "_f" version uses extra 1280 bytes of storage space
@@ -137,11 +170,11 @@ void setup() {
   ui::u8x8.draw1x2String(1, 1, "YL3AME"); 
 
   ubitx::InitSettings();
-  if (ui::BtnDown())
+  if (mainloop::BtnDown())
     ubitx::ResetSettingsAndHalt();
 
   encoder::Init();
-  si5351::Init();
+  ubitx::InitOscillators();
 
   ubitx::SetFrequency(settings::vfo_a);
   ubitx::SidebandSet(settings::vfo_a_usb);
@@ -151,7 +184,7 @@ void setup() {
 // Arduino loop function
 
 void loop() { 
-  cat::Run();
-  keyer::Run();
+  //cat::Run();
+  //keyer::Run();
   mainloop::Run();
 }

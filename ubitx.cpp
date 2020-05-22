@@ -36,6 +36,7 @@
 #include <Wire.h>
 #include "eeprom.h"
 #include "hw.h"
+#include "keyer.h"
 #include "mainloop.h"
 #include "menu.h"
 #include "settings.h"
@@ -57,12 +58,10 @@ namespace ubitx {
  */
 
 unsigned long first_if;
-char shift_mode;  // 0 - normal, 1 - rit, 2 - split
-char vfo_active;
+
+Status status;
+
 int cw_delay_time;
-char is_usb;
-char keyer_control;
-char tx_inhibit;
 
 // TODO: can we live with only one RIT variable?
 unsigned long frequency;
@@ -150,7 +149,7 @@ void SetFrequency(unsigned long f) {
 
   SetTxFilters(f);
 
-  if (is_usb) {
+  if (status.is_usb) {
     si5351::SetFreq(2, first_if + f);
     si5351::SetFreq(1, first_if + settings::usb_carrier);
   } else{
@@ -168,19 +167,19 @@ void SetFrequency(unsigned long f) {
  * CW offest is calculated as lower than the operating frequency when in LSB mode, and vice versa in USB mode
  */
 void TxStart(char tx_mode) {
-  if (!tx_inhibit)
+  if (!status.tx_inhibit)
     digitalWrite(hw::TX_RX, 1);
   in_tx = 1;
   
-  if (shift_mode == SHIFT_RIT) { // rit
+  if (status.shift_mode == SHIFT_RIT) { // rit
     //save the current as the rx frequency
     rit_rx_frequency = frequency;
     SetFrequency(rit_tx_frequency);
-  } else if (shift_mode == SHIFT_SPLIT) { // split
+  } else if (status.shift_mode == SHIFT_SPLIT) { // split
     VfoSwap(0);
   }
 
-  if (tx_mode == TX_CW && !tx_inhibit) {
+  if (tx_mode == TX_CW && !status.tx_inhibit) {
     //turn off the second local oscillator and the bfo
     si5351::SetFreq(0, 0);
     si5351::SetFreq(1, 0);
@@ -188,7 +187,7 @@ void TxStart(char tx_mode) {
     //shif the first oscillator to the tx frequency directly
     //the key up and key down will toggle the carrier unbalancing
     //the exact cw frequency is the tuned frequency + sidetone
-    if (is_usb)
+    if (status.is_usb)
       si5351::SetFreq(2, frequency + settings::cw_side_tone);
     else
       si5351::SetFreq(2, frequency - settings::cw_side_tone); 
@@ -202,9 +201,9 @@ void TxStop() {
   digitalWrite(hw::TX_RX, 0);
   si5351::SetFreq(0, settings::usb_carrier);  //set back the carrrier oscillator, cw tx switches it off
 
-  if (shift_mode == SHIFT_RIT ) { // rit
+  if (status.shift_mode == SHIFT_RIT ) { // rit
     frequency = rit_rx_frequency;
-  } else if (shift_mode == SHIFT_SPLIT ) { // split
+  } else if (status.shift_mode == SHIFT_SPLIT ) { // split
     VfoSwap(0);
   }
   SetFrequency(frequency);
@@ -216,15 +215,15 @@ void TxStop() {
  * what the tx frequency will be
  */
 void RitEnable(unsigned long f) {
-  shift_mode = SHIFT_RIT;
+  status.shift_mode = SHIFT_RIT;
   //save the non-rit frequency back into the VFO memory
   //as RIT is a temporary shift, this is not saved to EEPROM
   rit_tx_frequency = f;
 }
 
 void RitDisable() {
-  if (shift_mode == SHIFT_RIT) {
-    shift_mode = SHIFT_NONE;
+  if (status.shift_mode == SHIFT_RIT) {
+    status.shift_mode = SHIFT_NONE;
     SetFrequency(rit_tx_frequency);
     ui::UpdateDisplay();
   }
@@ -245,48 +244,48 @@ void IambicKeySet(unsigned char key) {
   EEPROM.put(eeprom::IAMBIC_KEY, settings::iambic_key);
 
   if (settings::iambic_key == 1)
-    keyer_control &= ~0x10;  // IAMBICB bit
+    keyer::keyer_control &= ~0x10;  // IAMBICB bit
   if (settings::iambic_key == 2)
-    keyer_control |= 0x10;  // IAMBICB bit
+    keyer::keyer_control |= 0x10;  // IAMBICB bit
 }
 
 
 void SidebandSet(char usb) {
-  is_usb = usb;
+  status.is_usb = usb;
   SetFrequency(frequency);
 }
 
 void VfoSwap(unsigned char save) {
   RitDisable();
-  if (vfo_active == VFO_ACTIVE_A) {
+  if (status.vfo_active == VFO_ACTIVE_A) {
     settings::vfo_a = frequency;
-    settings::vfo_a_usb = is_usb;
+    settings::vfo_a_usb = status.is_usb;
     if (save) EEPROM.put(eeprom::VFO_A, settings::vfo_a);
     if (save) EEPROM.put(eeprom::VFO_A_USB, settings::vfo_a_usb);
 
-    vfo_active = VFO_ACTIVE_B;
+    status.vfo_active = VFO_ACTIVE_B;
     frequency = settings::vfo_b;
-    is_usb = settings::vfo_b_usb;
+    status.is_usb = settings::vfo_b_usb;
   } else {
     settings::vfo_b = frequency;
-    settings::vfo_b_usb = is_usb;
+    settings::vfo_b_usb = status.is_usb;
     if (save) EEPROM.put(eeprom::VFO_B, settings::vfo_b);
     if (save) EEPROM.put(eeprom::VFO_B_USB, settings::vfo_b_usb);
 
-    vfo_active = VFO_ACTIVE_A;
+    status.vfo_active = VFO_ACTIVE_A;
     frequency = settings::vfo_a;
-    is_usb = settings::vfo_a_usb;
+    status.is_usb = settings::vfo_a_usb;
   }
   SetFrequency(frequency);
 }
 
 void SplitEnable() {
-  shift_mode = SHIFT_SPLIT;
+  status.shift_mode = SHIFT_SPLIT;
 }
 
 void SplitDisable() {
-  if (shift_mode == SHIFT_SPLIT) {
-    shift_mode = SHIFT_NONE;
+  if (status.shift_mode == SHIFT_SPLIT) {
+    status.shift_mode = SHIFT_NONE;
   }
 }
 
@@ -364,17 +363,18 @@ void InitSettings() {
   // TODO - EEPROM
   first_if = 45005000L; // should be eeprom
   cw_delay_time = 60;
-  tx_inhibit = 0;
+
 
   // calculate internal variables
-  vfo_active = VFO_ACTIVE_A;
-  is_usb = settings::vfo_a_usb;
-  shift_mode = SHIFT_NONE;
+  status.tx_inhibit = 0;
+  status.vfo_active = VFO_ACTIVE_A;
+  status.is_usb = settings::vfo_a_usb;
+  status.shift_mode = SHIFT_NONE;
 
    if (settings::iambic_key == 1)
-     keyer_control &= ~0x10;
+     keyer::keyer_control &= ~0x10;
    else if (settings::iambic_key == 2)
-     keyer_control |= 0x10;
+     keyer::keyer_control |= 0x10;
 }
 
 void InitOscillators() {
