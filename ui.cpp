@@ -4,6 +4,7 @@
  */
 #include "ui.h"
 #include <Arduino.h>
+#include <U8x8lib.h>
 #include "hw.h"
 #include "ubitx.h"
 #include "keyer.h"
