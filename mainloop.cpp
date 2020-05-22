@@ -75,8 +75,6 @@ void CheckButtons() {
   }
 
   buttons.ptt_down = PttDown();
-
-  if (menu::menu_state != 0) return; // menu handles its own button
 }
 
 bool FButtonClicked() {

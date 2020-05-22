@@ -16,6 +16,7 @@ struct Buttons {
 
 extern Buttons buttons;
 
+void CheckButtons();
 bool FButtonClicked();
 bool FBtnDown();
 void Run();

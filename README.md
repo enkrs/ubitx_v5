@@ -30,3 +30,4 @@ Program memory / global variables
   * 19898 / 1073 struct zero init, buttons bool
   * 19896 / 1073 function parameter bool
   * 19936 / 1073 cw delay settings
+  * 19956 / 1073 fix buttoclick loop

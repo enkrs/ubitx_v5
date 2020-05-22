@@ -59,7 +59,8 @@ long int WaitKnobValue(long int minimum, long int maximum, long int step_size,
   long int knob_value = initial;
 
   screen_dirty = 1;
-  while (!mainloop::FButtonClicked()) {
+  while (!mainloop::FButtonClicked()) { // TODO avoid this blocking loop
+    mainloop::CheckButtons();
     knob = encoder::ReadSlow();
     if (knob != 0) {
       if (knob < 0) knob_value -= step_size;
@@ -115,7 +116,8 @@ void MenuBand(int btn) {
   ui::PrintStatus(STR_BAND_SELECT);
   ubitx::RitDisable();
 
-  while (!mainloop::FButtonClicked()) {
+  while (!mainloop::FButtonClicked()) { // todo avoid this blocking loop
+    mainloop::CheckButtons();
     knob = encoder::ReadSlow();
     if (knob != 0) {
       if (knob < 0 && ubitx::frequency - 100000l > ubitx::LOWEST_FREQ)
