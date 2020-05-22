@@ -14,20 +14,19 @@ Buttons buttons;
 
 // returns 1 if the button is pressed
 // handles debounce
-char FBtnDown() {
-  char now = 0, prev = 0;
+bool FBtnDown() {
+  bool now = 0, prev = 0;
 
   int i = 0;
   do {
-    now = (PINC & PC2_FBUTTON);
+    now = (PINC & PC2_FBUTTON) == 0; // 0 means button short to ground
     if (prev != now) {
       prev = now;
       i = 0;
     }
   } while (i++ < debounce_count);
 
-  if (now) return 0; // pullup resistor pulls to 1 if button not pressed
-  return 1;
+  return now;
 }
 
 char PttDown() {
@@ -54,7 +53,7 @@ void CheckTx() {
   if (ubitx::in_tx == 0 && (PINC & PC3_PTT) == 0) {
     for (int i = 0; i < debounce_count; i++)
       if ((PINC & PC3_PTT) != 0) return;  // debounce
-    ubitx::TxStart(ubitx::TX_SSB);
+    ubitx::TxStartSsb();
     return;
   }
 	
@@ -67,12 +66,12 @@ void CheckTx() {
 }
 
 void CheckButtons() {
-  char prev_f_down = buttons.f_down;
+  bool prev_f_down = buttons.f_down;
 
   buttons.f_down = FBtnDown();
-  if (prev_f_down == 1 and buttons.f_down != 1) {
+  if (prev_f_down == true and buttons.f_down == false) {
     // released
-    buttons.f_clicked = 1;
+    buttons.f_clicked = true;
   }
 
   buttons.ptt_down = PttDown();
@@ -80,12 +79,12 @@ void CheckButtons() {
   if (menu::menu_state != 0) return; // menu handles its own button
 }
 
-char FButtonClicked() {
+bool FButtonClicked() {
   if (!buttons.f_clicked)
-    return 0;
+    return false;
 
-  buttons.f_clicked = 0;
-  return 1;
+  buttons.f_clicked = false;
+  return true;
 }
 
 
@@ -170,7 +169,6 @@ void setup() {
   Serial.flush();  
 
   ubitx::InitPorts();     
-  memset(&mainloop::buttons, 0, sizeof(mainloop::buttons));
   
   ui::u8x8.begin();
   // the "_f" version uses extra 1280 bytes of storage space

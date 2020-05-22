@@ -3,21 +3,21 @@
 
 namespace mainloop {
 
-const int debounce_count = 500;
+const int debounce_count = 500; // TODO reduce, research
 
 struct Buttons {
-  unsigned char f_down;
-  unsigned char ptt_down;
-  unsigned char f_clicked;
-  unsigned char f_hold;
-  unsigned char ptt_engaged;
-  unsigned char ptt_released;
+  bool f_down = false;
+  bool ptt_down = false;
+  bool f_clicked = false;
+  bool f_hold = false;
+  bool ptt_engaged = false;
+  bool ptt_released = false;
 };
 
 extern Buttons buttons;
 
-char FButtonClicked();
-char FBtnDown();
+bool FButtonClicked();
+bool FBtnDown();
 void Run();
 
 }  // namespace

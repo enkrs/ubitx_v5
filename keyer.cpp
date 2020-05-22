@@ -65,7 +65,7 @@ void CwKeydown() {
   tone(hw::CW_TONE, ubitx::settings.cw_side_tone); 
   digitalWrite(hw::CW_KEY, 1);
 
-  cw_timeout = millis() + ubitx::cw_delay_time * 10;  
+  cw_timeout = millis() + ubitx::settings.cw_delay_time * 10;  
 }
 
 /**
@@ -78,7 +78,7 @@ void CwKeyUp() {
   digitalWrite(hw::CW_KEY, 0);
   
   //Modified by KD8CEC, for CW Delay Time save to eeprom
-  cw_timeout = millis() + ubitx::cw_delay_time * 10;
+  cw_timeout = millis() + ubitx::settings.cw_delay_time * 10;
 }
 
 //Variables for Ron's new logic
@@ -169,8 +169,8 @@ void CwKeyerIambic() {
           ubitx::ActiveDelay(delay_before_cw_start_time * 2);
           
           key_down = 0;
-          cw_timeout = millis() + ubitx::cw_delay_time * 10;
-          ubitx::TxStart(ubitx::TX_CW);
+          cw_timeout = millis() + ubitx::settings.cw_delay_time * 10;
+          ubitx::TxStartCw();
         }
         ktimer += millis();  // set ktimer to interval end time
         keyer_control &= ~(DIT_L + DAH_L);  // clear both paddle latch bits
@@ -212,8 +212,8 @@ void CwKeyerStraight() {
         ubitx::ActiveDelay(delay_before_cw_start_time * 2);
         
         key_down = 0;
-        cw_timeout = millis() + ubitx::cw_delay_time * 10;
-        ubitx::TxStart(ubitx::TX_CW);
+        cw_timeout = millis() + ubitx::settings.cw_delay_time * 10;
+        ubitx::TxStartCw();
       }
       CwKeydown();
       

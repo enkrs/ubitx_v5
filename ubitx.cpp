@@ -61,7 +61,6 @@ unsigned long first_if;
 Status status;
 Settings settings;
 
-int cw_delay_time;
 
 // TODO: can we live with only one RIT variable?
 unsigned long frequency;
@@ -166,7 +165,7 @@ void SetFrequency(unsigned long f) {
  * Note: In cw mode, doesnt key the radio, only puts it in tx mode
  * CW offest is calculated as lower than the operating frequency when in LSB mode, and vice versa in USB mode
  */
-void TxStart(char tx_mode) {
+void TxStart(bool start_cw) {
   if (!status.tx_inhibit)
     digitalWrite(hw::TX_RX, 1);
   in_tx = 1;
@@ -176,10 +175,10 @@ void TxStart(char tx_mode) {
     rit_rx_frequency = frequency;
     SetFrequency(rit_tx_frequency);
   } else if (status.shift_mode == SHIFT_SPLIT) { // split
-    VfoSwap(0);
+    VfoSwap(/*save=*/false);
   }
 
-  if (tx_mode == TX_CW && !status.tx_inhibit) {
+  if (start_cw && !status.tx_inhibit) {
     //turn off the second local oscillator and the bfo
     si5351::SetFreq(0, 0);
     si5351::SetFreq(1, 0);
@@ -195,6 +194,14 @@ void TxStart(char tx_mode) {
   ui::UpdateDisplay();
 }
 
+void TxStartSsb() {
+  TxStart(/*start_cw=*/false);
+}
+void TxStartCw() {
+  TxStart(/*start_cw=*/true);
+}
+
+
 void TxStop() {
   in_tx = 0;
 
@@ -204,7 +211,7 @@ void TxStop() {
   if (status.shift_mode == SHIFT_RIT ) { // rit
     frequency = rit_rx_frequency;
   } else if (status.shift_mode == SHIFT_SPLIT ) { // split
-    VfoSwap(0);
+    VfoSwap(/*save=*/false);
   }
   SetFrequency(frequency);
   ui::UpdateDisplay();
@@ -239,6 +246,11 @@ void CwToneSet(unsigned int tone) {
   EEPROM.put(eeprom::CW_SIDE_TONE, settings.cw_side_tone);
 }
 
+void CwDelayTimeSet(unsigned int delay_time) {
+  settings.cw_delay_time = delay_time;
+  EEPROM.put(eeprom::CW_DELAY_TIME, settings.cw_delay_time);
+}
+
 void IambicKeySet(unsigned char key) {
   settings.iambic_key = key;
   EEPROM.put(eeprom::IAMBIC_KEY, settings.iambic_key);
@@ -255,7 +267,7 @@ void SidebandSet(bool usb) {
   SetFrequency(frequency);
 }
 
-void VfoSwap(unsigned char save) {
+void VfoSwap(bool save) {
   RitDisable();
   if (status.vfo_a_active) {
     settings.vfo_a = frequency;
@@ -311,6 +323,7 @@ void ResetSettingsAndHalt() {
   settings.vfo_a_usb = true;
   settings.vfo_b_usb = true;
   settings.iambic_key = 1;
+  settings.cw_delay_time = 60;
 
   // Before type change
   // Sketch uses 18520 bytes (60%) of program storage space. Maximum is 30720 bytes.
@@ -326,6 +339,7 @@ void ResetSettingsAndHalt() {
   EEPROM.put(eeprom::VFO_A_USB, settings.vfo_a_usb);
   EEPROM.put(eeprom::VFO_B_USB, settings.vfo_b_usb);
   EEPROM.put(eeprom::IAMBIC_KEY, settings.iambic_key);
+  EEPROM.put(eeprom::CW_DELAY_TIME, settings.cw_delay_time);
 
   char magicNr = eeprom::MAGIC_NR; // TODO unneded variable
   EEPROM.put(eeprom::MAGIC_ADDR, magicNr);
@@ -359,10 +373,10 @@ void InitSettings() {
   EEPROM.get(eeprom::VFO_A_USB, settings.vfo_a_usb);
   EEPROM.get(eeprom::VFO_B_USB, settings.vfo_b_usb);
   EEPROM.get(eeprom::IAMBIC_KEY, settings.iambic_key);
+  EEPROM.get(eeprom::CW_DELAY_TIME, settings.cw_delay_time);
 
   // TODO - EEPROM
   first_if = 45005000L; // should be eeprom
-  cw_delay_time = 60;
 
 
   // calculate internal variables

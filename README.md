@@ -27,3 +27,6 @@ Program memory / global variables
   * 19854 / 1073 c++ structs
   * 19916 / 1073 some c++ bools
   * 19916 / 1073 settings struct
+  * 19898 / 1073 struct zero init, buttons bool
+  * 19896 / 1073 function parameter bool
+  * 19936 / 1073 cw delay settings

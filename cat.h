@@ -3,7 +3,7 @@
 
 namespace cat {
 
-extern char tx_cat;
+extern bool tx_cat;
 void Run();
 
 }

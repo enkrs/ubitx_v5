@@ -54,7 +54,7 @@ void DrawWaitKnobScreen(const char* title, const char *units) {
 // A generic control to read variable values
 long int WaitKnobValue(long int minimum, long int maximum, long int step_size,
                        int initial, void (*ValueCallback)(long int),
-                       unsigned char silent) {
+                       bool silent) {
   int knob = 0;
   long int knob_value = initial;
 
@@ -157,7 +157,7 @@ void MenuVfoToggle(int btn) {
     return;
   }
 
-  ubitx::VfoSwap(/* save=*/1);
+  ubitx::VfoSwap(/* save=*/true);
 
   menu_state = 1;
 }
@@ -210,7 +210,7 @@ void MenuCwSpeed(int btn) {
   }
 
   DrawWaitKnobScreen("CW SPEED", STR_WPM);
-  wpm = WaitKnobValue(1, 100, 1,  wpm, 0, 0);
+  wpm = WaitKnobValue(1, 100, 1,  wpm, nullptr, false);
 
   ubitx::CwSpeedSet(1200 / wpm);
 
@@ -284,7 +284,7 @@ void MenuSetupCarrier(int btn) {
   // Values from 11000000 to 11099999
   carrier = 11000000 + WaitKnobValue(0, 99999, 1,
                                      ubitx::settings.usb_carrier - 11000000,
-                                     PreviewCarrier, 1);
+                                     PreviewCarrier, false);
   ubitx::SetUsbCarrier(carrier);
   menu_state = 1;
 }
@@ -305,7 +305,7 @@ void MenuSetupCwTone(int btn) {
 
   DrawWaitKnobScreen(STR_CW_TONE, "HZ");
   unsigned int tone = WaitKnobValue(100, 2000, 10, ubitx::settings.cw_side_tone,
-                                    PreviewSidetone, 0);
+                                    PreviewSidetone, false);
   noTone(hw::CW_TONE);
   ubitx::CwToneSet(tone);
 
@@ -315,7 +315,7 @@ void MenuSetupCwTone(int btn) {
 void MenuSetupCwDelay(int btn) {
   if (!btn) {
     if (NeedRedraw()) {
-      itoa(ubitx::cw_delay_time, b, 10);
+      itoa(ubitx::settings.cw_delay_time, b, 10);
       strcat(b, " MS");
       ui::PrintStatusValue(STR_CW_DELAY, b);
     }
@@ -323,9 +323,8 @@ void MenuSetupCwDelay(int btn) {
   }
 
   DrawWaitKnobScreen(STR_CW_DELAY, "MS");
-  // TODO MOVE to settings
-  ubitx::cw_delay_time = WaitKnobValue(10, 1010, 50, ubitx::cw_delay_time,
-                                       0, 0);
+  ubitx::CwDelayTimeSet(WaitKnobValue(10, 1010, 50,
+                        ubitx::settings.cw_delay_time, nullptr, false));
 
   menu_state = 1;
 }
@@ -347,7 +346,7 @@ void MenuSetupKeyer(int btn) {
   DrawWaitKnobScreen(STR_CW_KEY, "");
 
   ubitx::IambicKeySet(WaitKnobValue(0, 2, 1, ubitx::settings.iambic_key,
-                                    PreviewKeyer, 1));
+                                    PreviewKeyer, true));
 
   menu_state = 1;
 }

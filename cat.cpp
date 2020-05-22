@@ -28,7 +28,7 @@ const char CAT_MODE_PKT = 0x0C;
 const char CAT_MODE_FMN = 0x88;
 const char ACK = 0;
 
-char tx_cat = 0;  // turned on if the transmitting due to a CAT command
+bool tx_cat = false;  // turned on if the transmitting due to a CAT command
 
 unsigned long rx_buffer_arrive_time = 0;
 char rx_buffer_check_count = 0;
@@ -184,7 +184,7 @@ void CatReadEeprom() {
       cat[1] = 0x08;
       break;
     case 0x60:  // CW Delay (10-2500 ms) (#17)  From 1 to 250 (decimal) with each step representing 10 ms
-      cat[0] = ubitx::cw_delay_time;
+      cat[0] = ubitx::settings.cw_delay_time;
       cat[1] = 0x32;
       break;
     case 0x62:
@@ -269,8 +269,8 @@ void ProcessCatCommand(char* cmd) {
     case 0x08:  // PTT On
       if (!ubitx::in_tx) {
         response[0] = 0;
-        tx_cat = 1;
-        ubitx::TxStart(ubitx::TX_SSB);
+        tx_cat = true;
+        ubitx::TxStartSsb();
         ui::UpdateDisplay();
       } else {
         response[0] = 0xf0;
@@ -281,7 +281,7 @@ void ProcessCatCommand(char* cmd) {
     case 0x88:  // PTT OFF
       if (ubitx::in_tx) {
         ubitx::TxStop();
-        tx_cat = 0;
+        tx_cat = false;
       }
       response[0] = 0;
       Serial.write(response, 1);
@@ -290,7 +290,7 @@ void ProcessCatCommand(char* cmd) {
     case 0x81:
       // toggle the VFOs
       response[0] = 0;
-      ubitx::VfoSwap(1);
+      ubitx::VfoSwap(true);
       Serial.write(response, 1);
       ui::UpdateDisplay();
       break;

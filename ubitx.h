@@ -24,11 +24,6 @@ namespace ubitx {
 const unsigned long LOWEST_FREQ  =  1000000l;
 const unsigned long HIGHEST_FREQ = 30000000l;
 
-//we directly generate the CW by programming the Si5351 to the cw tx frequency, hence, both are different modes
-//these are the parameter passed to TxStart
-const int TX_SSB = 0;
-const int TX_CW = 1;
-
 /** 
  * The Raduino board is the size of a standard 16x2 LCD panel. It has three connectors:
  * 
@@ -47,14 +42,8 @@ const int SHIFT_NONE = 0;
 const int SHIFT_RIT = 1;
 const int SHIFT_SPLIT = 2;
 
-const int VFO_ACTIVE_A = 0;
-const int VFO_ACTIVE_B = 1;
-
-
-extern int cw_delay_time;
-
 extern struct Status {
-  unsigned char shift_mode;
+  unsigned char shift_mode; // 0 none, 1 rit, 2 split
   bool vfo_a_active;
   bool is_usb;
   bool tx_inhibit;
@@ -69,7 +58,8 @@ extern struct Settings {
   unsigned int cw_speed;
   bool vfo_a_usb;
   bool vfo_b_usb;
-  unsigned char iambic_key;
+  unsigned char iambic_key; // 0 stright, 1 a, 2 b
+  int cw_delay_time;
 } settings;
 
 extern unsigned long frequency;
@@ -90,15 +80,17 @@ void RitDisable();
 void RitEnable(unsigned long f);
 void CwSpeedSet(unsigned int wpm);
 void CwToneSet(unsigned int tone);
+void CwDelayTimeSet(unsigned int delay_time);
 void SetFrequency(unsigned long f);
 void SetUsbCarrier(unsigned long long carrier);
 void SidebandSet(bool usb);
 void IambicKeySet(unsigned char key);
 void SplitDisable();
 void SplitEnable();
-void TxStart(char tx_mode);
+void TxStartSsb();
+void TxStartCw();
 void TxStop();
-void VfoSwap(unsigned char save);
+void VfoSwap(bool save);
 
 }  // namespace
 
