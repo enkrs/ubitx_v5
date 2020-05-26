@@ -12,33 +12,41 @@ namespace menu {
 char b[12]; // holds strings up to ltoa "-2147483647\0"
             // also itoa with prefix    "-32767 HZ..\0"
 
-/** Menus
- *  The Radio menus are accessed by tapping on the function button. 
- *  - The main loop() constantly looks for a button press and calls DoMenu() when it detects
- *  a function button press. 
- *  - As the encoder is rotated, at every 10th pulse, the next or the previous menu
- *  item is displayed. Each menu item is controlled by it's own function.
- *  - Eache menu function may be called to display itself
- *  - Each of these menu routines is called with a button parameter. 
- *  - The btn flag denotes if the menu itme was clicked on or not.
- *  - If the menu item is clicked on, then it is selected,
- *  - If the menu item is NOT clicked on, then the menu's prompt is to be displayed
- */
+enum DO_MENU_STATES {
+  STATE_INITIAL,
+  STATE_DRAW_SELECTED,
+  STATE_SELECTING_MENU,
+  STATE_MENU_ITEM_ACTIVE,
+  STATE_OPEN_ADVANCED,
+  STATE_EXIT,
+  STATE_WAIT_VALUE,
+  STATE_VALUE_RETURNED
+};
 
-// Set to 2 when the menu is being displayed, if a menu item sets it to zero,
-// the menu is exited.
-char menu_state = 0;
+enum MENU_HANDLER_STATES {
+  EVENT_SELECTED,
+  EVENT_ACTIVE,
+  EVENT_VALUE,
+};
 
-char screen_dirty;  // Used across functions to signal redrawing
+// Is the advanced menu visible?
+bool advanced_menu = false;
 
-// This mode of menus shows extended menus to calibrate the oscillators and
-// choose the proper
-char extended_menu = 0;
+struct Value {
+  int min;
+  int max;
+  int step;
+  int current;
+  void (*PreviewCallback)();
+} value;
 
-static char NeedRedraw() {
-  char ret = screen_dirty;
-  screen_dirty = 0;
-  return ret;
+void SetWaitValues(int min, int max, int step, int current, void (*PreviewCallback)()) {
+  value.min = min;
+  value.max = max;
+  value.step = step;
+  value.current = current;
+  value.PreviewCallback = PreviewCallback;
+  value.PreviewCallback();
 }
 
 unsigned char wait_knob_right = 0;
@@ -51,48 +59,20 @@ void DrawWaitKnobScreen(const char* title, const char *units) {
   wait_knob_right--;
 }
 
-// A generic control to read variable values
-long int WaitKnobValue(long int minimum, long int maximum, int step_size,
-                       long int initial, void (*ValueCallback)(long int),
-                       bool silent) {
-  int knob = 0;
-  long int knob_value = initial;
-
-  screen_dirty = 1;
-  while (!mainloop::FButtonClicked()) { // TODO avoid this blocking loop
-    mainloop::CheckButtons();
-    knob = encoder::ReadSlow();
-    if (knob != 0) {
-      if (knob < 0) knob_value -= step_size;
-      if (knob > 0) knob_value += step_size;
-      knob_value = (knob_value - minimum) / step_size * step_size + minimum;
-      if (knob_value < minimum) knob_value = minimum;
-      if (knob_value > maximum) knob_value = maximum;
-      screen_dirty = 1;
-    }
-    if (NeedRedraw()) {
-      if (ValueCallback) ValueCallback(knob_value);
-      if (!silent) {
-        ltoa(knob_value, b, 10);
-        int8_t i = wait_knob_right - strlen(b) * 2;
-        if (i > 0) {
-          ui::u8x8.setFont(U8X8_DIGITFONT);
-          ui::u8x8.drawString(i, 3, b);
-          ui::u8x8.setFont(U8X8_MAINFONT);
-          while (i-- > 1) {
-            ui::u8x8.draw1x2Glyph(i, 3, ' ');
-            ui::u8x8.drawGlyph(i, 5, ' ');
-          }
-        }
-      }
+void PreviewCurrentValue() {
+  ltoa(value.current, b, 10);
+  int8_t i = wait_knob_right - strlen(b) * 2;
+  if (i > 0) {
+    ui::u8x8.setFont(U8X8_DIGITFONT);
+    ui::u8x8.drawString(i, 3, b);
+    ui::u8x8.setFont(U8X8_MAINFONT);
+    while (i-- > 1) {
+      ui::u8x8.draw1x2Glyph(i, 3, ' ');
+      ui::u8x8.drawGlyph(i, 5, ' ');
     }
   }
-
-  return knob_value;
 }
 
-
-//# Menu: 1
 static const char* STR_ON = "ON";
 static const char* STR_OFF = "OFF";
 static const char* STR_WPM = "WPM";
@@ -104,397 +84,424 @@ static const char* STRS_IAMBIC[3] = {"STRIGHT", "IAMBIC-A", "IAMBIC-B"};
 static const char* STRS_ADC[4] = {"FBUTTON", "PTT", "KEYER", "VOLTAGE"};
 static const int   PINS_ADC[4] = { hw::FBUTTON, hw::PTT, hw::ANALOG_KEYER, hw::ANALOG_V};
 
-void MenuBand(int btn) {
-  int knob = 0;
+void PreviewBand() {
+  ubitx::SetFrequency((ubitx::frequency % 100000l) + (value.current * 100000l));
+  ui::UpdateDisplay();
+}
 
-  if (!btn) {
-    if (NeedRedraw())
+unsigned char MenuBand(unsigned char event) {
+  switch (event) {
+    case EVENT_SELECTED:
       ui::PrintStatusValue(STR_BAND_SELECT, ">");
-    return;
+      return STATE_SELECTING_MENU;
+    case EVENT_ACTIVE:
+      ui::PrintStatus(STR_BAND_SELECT);
+      ubitx::RitDisable();
+
+      SetWaitValues(ubitx::LOWEST_FREQ / 100000l,
+                    ubitx::HIGHEST_FREQ / 100000l,
+                    1,
+                    ubitx::frequency / 100000l,
+                    PreviewBand);
+      return STATE_WAIT_VALUE;
+    case EVENT_VALUE:
+      return STATE_EXIT;
   }
-
-  ui::PrintStatus(STR_BAND_SELECT);
-  ubitx::RitDisable();
-
-  while (!mainloop::FButtonClicked()) { // todo avoid this blocking loop
-    mainloop::CheckButtons();
-    knob = encoder::ReadSlow();
-    if (knob != 0) {
-      if (knob < 0 && ubitx::frequency - 100000l > ubitx::LOWEST_FREQ)
-        ubitx::SetFrequency(ubitx::frequency - 100000l);
-      if (knob > 0 && ubitx::frequency + 100000l < ubitx::HIGHEST_FREQ)
-        ubitx::SetFrequency(ubitx::frequency + 100000l);
-      ubitx::status.is_usb = ubitx::frequency > 10000000l ? true : false; // TODO call SidebandSet
-      ui::UpdateDisplay();
-    }
-  }
-
-  menu_state = 1;
+  return false;
 }
 
-// Menu #2
-void MenuRitToggle(int btn) {
-  if (!btn) {
-    if (NeedRedraw()) {
+unsigned char MenuRitToggle(unsigned char event) {
+  switch (event) {
+    case EVENT_SELECTED:
       ui::PrintStatusValue("RIT", ubitx::status.shift_mode == ubitx::SHIFT_RIT ? STR_ON : STR_OFF);
-    }
-    return;
+      return STATE_SELECTING_MENU;
+    case EVENT_ACTIVE:
+      if (ubitx::status.shift_mode == ubitx::SHIFT_RIT)
+        ubitx::RitDisable();
+      else
+        ubitx::RitEnable(ubitx::frequency);
+      return STATE_EXIT;
   }
-
-  if (ubitx::status.shift_mode == ubitx::SHIFT_RIT)
-    ubitx::RitDisable();
-  else
-    ubitx::RitEnable(ubitx::frequency);
-
-  menu_state = 1;
+  return STATE_EXIT;
 }
 
-
-// Menu #3
-void MenuVfoToggle(int btn) {
-  if (!btn) {
-    if (NeedRedraw()) {
+unsigned char MenuVfoToggle(unsigned char event) {
+  switch (event) {
+    case EVENT_SELECTED:
       ui::PrintStatusValue("VFO", ubitx::status.vfo_a_active ? "A" : "B");
-    }
-    return;
+      return STATE_SELECTING_MENU;
+    case EVENT_ACTIVE:
+      ubitx::VfoSwap(/* save=*/true);
+      return STATE_EXIT;
   }
-
-  ubitx::VfoSwap(/* save=*/true);
-
-  menu_state = 1;
+  return STATE_EXIT;
 }
 
-// Menu #4
-void MenuVfoCopy(int btn) {
-  if (!btn) {
-    if (NeedRedraw()) {
+unsigned char MenuVfoCopy(unsigned char event) {
+  switch (event) {
+    case EVENT_SELECTED:
       ui::PrintStatusValue("VFO", "A=B");
-    }
-    return;
+      return STATE_SELECTING_MENU;
+    case EVENT_ACTIVE:
+      ubitx::VfoCopy(/* save=*/true);
+      return STATE_EXIT;
   }
-
-  ubitx::VfoCopy(/* save=*/true);
-
-  menu_state = 1;
+  return STATE_EXIT;
 }
 
-// Menu #4
-void MenuSidebandToggle(int btn) {
-  if (!btn) {
-    if (NeedRedraw()) {
+unsigned char MenuSidebandToggle(unsigned char event) {
+  switch (event) {
+    case EVENT_SELECTED:
       ui::PrintStatusValue("MODE", ubitx::status.is_usb ? "USB" : "LSB");
-    }
-    return;
+      return STATE_SELECTING_MENU;
+    case EVENT_ACTIVE:
+      ubitx::SidebandSet(!ubitx::status.is_usb);
+      return STATE_EXIT;
   }
-
-  ubitx::SidebandSet(!ubitx::status.is_usb);
-
-  menu_state = 1;
+  return STATE_EXIT;
 }
 
-// Split communication using VFOA and VFOB by KD8CEC
-// Menu #5
-void MenuSplitToggle(int btn) {
-  if (!btn) {
-    if (NeedRedraw()) {
+unsigned char MenuSplitToggle(unsigned char event) {
+  switch (event) {
+    case EVENT_SELECTED:
       ui::PrintStatusValue("SPLIT", ubitx::status.shift_mode == ubitx::SHIFT_SPLIT ? STR_ON : STR_OFF);
-    }
-    return;
+      return STATE_SELECTING_MENU;
+    case EVENT_ACTIVE:
+      if (ubitx::status.shift_mode == ubitx::SHIFT_SPLIT)
+        ubitx::SplitDisable();
+      else
+        ubitx::SplitEnable();
+      return STATE_EXIT;
   }
-
-  if (ubitx::status.shift_mode == ubitx::SHIFT_SPLIT)
-    ubitx::SplitDisable();
-  else
-    ubitx::SplitEnable();
-
-  menu_state = 1;
+  return STATE_EXIT;
 }
 
-void MenuCwSpeed(int btn) {
-  int wpm;
-
-  wpm = 1200 / ubitx::settings.cw_speed;
-
-  if (!btn) {
-    if (NeedRedraw()) {
-      itoa(wpm, b, 10);
+unsigned char MenuCwSpeed(unsigned char event) {
+  switch (event) {
+    case EVENT_SELECTED:
+      itoa(1200 / ubitx::settings.cw_speed, b, 10);
       strcat(b, " ");
       strcat(b, STR_WPM);
       ui::PrintStatusValue("CW", b);
-    }
-    return;
+      return STATE_SELECTING_MENU;
+    case EVENT_ACTIVE:
+      DrawWaitKnobScreen("CW SPEED", STR_WPM);
+      SetWaitValues(1, 100, 1, 1200 / ubitx::settings.cw_speed,
+                    PreviewCurrentValue);
+      return STATE_WAIT_VALUE;
+    case EVENT_VALUE:
+      ubitx::CwSpeedSet(1200 / value.current);
+      return STATE_EXIT;
   }
-
-  DrawWaitKnobScreen("CW SPEED", STR_WPM);
-  wpm = WaitKnobValue(1, 100, 1, wpm, nullptr, false);
-
-  ubitx::CwSpeedSet(1200 / wpm);
-
-  menu_state = 1;
+  return STATE_EXIT;
 }
 
-void MenuExit(int btn) {
-  if (!btn) {
-    if (NeedRedraw()) {
+unsigned char MenuExit(unsigned char event) {
+  switch (event) {
+    case EVENT_SELECTED:
       ui::PrintStatus("EXIT MENU");
-    }
-    return;
+      return STATE_SELECTING_MENU;
+    case EVENT_ACTIVE:
+      return STATE_EXIT;
   }
-
-  menu_state = 0;
+  return STATE_EXIT;
 }
 
 /**
  * The calibration routines are not normally shown in the menu as they are
  * rarely used. They can be enabled by choosing this menu option.
  */
-int MenuSetup(int btn) {
-  if (!btn) {
-    if (NeedRedraw()) {
-      ui::PrintStatusValue("ADVANCED", extended_menu ? STR_ON : ">");
-    }
-    return 0;
+unsigned char MenuAdvanced(unsigned char event) {
+  switch (event) {
+    case EVENT_SELECTED:
+      ui::PrintStatusValue("ADVANCED", advanced_menu ? STR_ON : ">");
+      return STATE_SELECTING_MENU;
+    case EVENT_ACTIVE:
+      if (!advanced_menu) {
+        return STATE_OPEN_ADVANCED;
+      }
+      advanced_menu = false;
+      return STATE_EXIT;
   }
-
-  if (!extended_menu) {
-    extended_menu = 1;
-    return 1;
-  }
-  extended_menu = 0;
-  menu_state = 1;
-  return 0;
+  return STATE_EXIT;
 }
 
-void PreviewCalibration(long int adjust) {
-  si5351::SetCalibration(adjust);
+void PreviewCalibration() {
+  si5351::SetCalibration(value.current * 875);
   si5351::SetFreq(0, ubitx::settings.usb_carrier);
   ubitx::SetFrequency(ubitx::frequency);
 
-  ultoa(adjust, b, DEC);
+  ltoa((long)(value.current * 875), b, DEC);
   ui::PrintLine(5, b);
 }
 
-void MenuSetupCalibration(int btn) {
-  if (!btn) {
-    if (NeedRedraw()) {
+unsigned char MenuSetupCalibration(unsigned char event) {
+  switch (event) {
+    case EVENT_SELECTED:
       ui::PrintStatus("CALIBRATE");
-    }
-    return;
+      return STATE_SELECTING_MENU;
+    case EVENT_ACTIVE:
+      ui::u8x8.clear();
+      ui::u8x8.draw1x2String(1, 1, "ZERO BEAT TO");
+      ultoa(ubitx::frequency, b, DEC);
+      ui::u8x8.draw1x2String(1, 3, b);
+
+      SetWaitValues(-1000, 1000, 1, ubitx::settings.master_cal / 875,
+                    PreviewCalibration);
+      return STATE_WAIT_VALUE;
+    case EVENT_VALUE:
+      ubitx::SetMasterCal(value.current * 875);
+      return STATE_EXIT;
   }
-
-  ui::u8x8.clear();
-  ui::u8x8.draw1x2String(1, 1, "ZERO BEAT TO");
-  ultoa(ubitx::frequency, b, DEC);
-  ui::u8x8.draw1x2String(1, 3, b);
-
-  ubitx::SetMasterCal(
-    WaitKnobValue(-875000, 875000, 875,
-                  ubitx::settings.master_cal, PreviewCalibration, true)
-  );
-
-  menu_state = 1;
-  // calibrateClock();
+  return STATE_EXIT;
 }
 
-void PreviewCarrier(long int adjust) {
-  si5351::SetFreq(0, adjust);
-  ultoa(adjust, b, DEC);
+void PreviewCarrier() {
+  si5351::SetFreq(0, value.current + 11053000);
+  ultoa(value.current + 11053000, b, DEC);
   ui::PrintLine(4, b);
 }
 
-void MenuSetupCarrier(int btn) {
-  if (!btn) {
-    if (NeedRedraw()) {
+unsigned char MenuSetupCarrier(unsigned char event) {
+  switch (event) {
+    case EVENT_SELECTED:
       ui::PrintStatus("CAL BFO");
-    }
-    return;
+      return STATE_SELECTING_MENU;
+    case EVENT_ACTIVE:
+      DrawWaitKnobScreen("CALIBRATE BFO", "");
+      //
+      // Values from 11000000 to 11099999
+      SetWaitValues(-32000, 32000, 1, ubitx::settings.usb_carrier - 11053000,
+                    PreviewCarrier);
+      return STATE_WAIT_VALUE;
+    case EVENT_VALUE:
+      ubitx::SetUsbCarrier(value.current);
+      return STATE_EXIT;
   }
-
-  DrawWaitKnobScreen("CALIBRATE BFO", "");
-  // Values from 11000000 to 11099999
-  ubitx::SetUsbCarrier(
-    WaitKnobValue(11000000, 11099999, 1,
-                  ubitx::settings.usb_carrier, PreviewCarrier, true)
-  );
-  menu_state = 1;
+  return STATE_EXIT;
 }
 
-void PreviewSidetone(long int value) {
-  tone(hw::CW_TONE, value);
+void PreviewSidetone() {
+  tone(hw::CW_TONE, value.current);
+  PreviewCurrentValue();
 }
 
-void MenuSetupCwTone(int btn) {
-  if (!btn) {
-    if (NeedRedraw()) {
+unsigned char MenuSetupCwTone(unsigned char event) {
+  switch (event) {
+    case EVENT_SELECTED:
       itoa(ubitx::settings.cw_side_tone, b, 10);
       strcat(b, " HZ");
       ui::PrintStatusValue(STR_CW_TONE, b);
-    }
-    return;
+      return STATE_SELECTING_MENU;
+    case EVENT_ACTIVE:
+      DrawWaitKnobScreen(STR_CW_TONE, "HZ");
+      SetWaitValues(100, 2000, 10, ubitx::settings.cw_side_tone,
+                    PreviewSidetone);
+      return STATE_WAIT_VALUE;
+    case EVENT_VALUE:
+      noTone(hw::CW_TONE);
+      ubitx::CwToneSet(value.current);
+      return STATE_EXIT;
   }
-
-  DrawWaitKnobScreen(STR_CW_TONE, "HZ");
-  unsigned int tone = WaitKnobValue(100, 2000, 10, ubitx::settings.cw_side_tone, PreviewSidetone, false);
-
-  noTone(hw::CW_TONE);
-  ubitx::CwToneSet(tone);
-
-  menu_state = 1;
+  return STATE_EXIT;
 }
 
-void MenuSetupCwDelay(int btn) {
-  if (!btn) {
-    if (NeedRedraw()) {
+unsigned char MenuSetupCwDelay(unsigned char event) {
+  switch (event) {
+    case EVENT_SELECTED:
       itoa(ubitx::settings.cw_delay_time, b, 10);
       strcat(b, " MS");
       ui::PrintStatusValue(STR_CW_DELAY, b);
-    }
-    return;
+      return STATE_SELECTING_MENU;
+    case EVENT_ACTIVE:
+      DrawWaitKnobScreen(STR_CW_DELAY, "MS");
+      SetWaitValues(10, 1010, 50, ubitx::settings.cw_delay_time,
+                    PreviewCurrentValue);
+      return STATE_WAIT_VALUE;
+    case EVENT_VALUE:
+      ubitx::CwDelayTimeSet(value.current);
+      return STATE_EXIT;
   }
-
-  DrawWaitKnobScreen(STR_CW_DELAY, "MS");
-  ubitx::CwDelayTimeSet(WaitKnobValue(10, 1010, 50, ubitx::settings.cw_delay_time, nullptr, false));
-
-  menu_state = 1;
+  return STATE_EXIT;
 }
 
-void PreviewKeyer(long int value) {
-  ui::u8x8.draw1x2String(4, 3, STRS_IAMBIC[value]);
-  for (unsigned char i = strlen(STRS_IAMBIC[value]) + 4; i <= 15; i++) {
+void PreviewKeyer() {
+  ui::u8x8.draw1x2String(4, 3, STRS_IAMBIC[value.current]);
+  for (unsigned char i = strlen(STRS_IAMBIC[value.current]) + 4; i <= 15; i++) {
     ui::u8x8.draw1x2Glyph(i, 3, ' ');
   }
 }
 
-void MenuSetupKeyer(int btn) {
-  if (!btn) {
-    if (NeedRedraw())
+unsigned char MenuSetupKeyer(unsigned char event) {
+  switch (event) {
+    case EVENT_SELECTED:
       ui::PrintStatusValue(STR_CW_KEY, STRS_IAMBIC[ubitx::settings.iambic_key]);
-    return;
+      return STATE_SELECTING_MENU;
+    case EVENT_ACTIVE:
+      DrawWaitKnobScreen(STR_CW_KEY, "");
+      SetWaitValues(0, 2, 1, ubitx::settings.iambic_key, PreviewKeyer);
+      return STATE_WAIT_VALUE;
+    case EVENT_VALUE:
+      ubitx::IambicKeySet(value.current);
+      return STATE_EXIT;
   }
-
-  DrawWaitKnobScreen(STR_CW_KEY, "");
-  ubitx::IambicKeySet(WaitKnobValue(0, 2, 1, ubitx::settings.iambic_key, PreviewKeyer, true));
-
-  menu_state = 1;
+  return STATE_EXIT;
 }
 
-void MenuTxToggle(int btn) {
-  if (!btn) {
-    if (NeedRedraw()) {
+unsigned char MenuTxToggle(unsigned char event) {
+  switch (event) {
+    case EVENT_SELECTED:
       ui::PrintStatusValue("TX INHIBIT", ubitx::status.tx_inhibit ? STR_ON : STR_OFF);
-    }
-    return;
+      return STATE_SELECTING_MENU;
+    case EVENT_ACTIVE:
+      ubitx::status.tx_inhibit = !ubitx::status.tx_inhibit;
+      return STATE_EXIT;
   }
-
-  ubitx::status.tx_inhibit = !ubitx::status.tx_inhibit;
-
-  menu_state = 1;
+  return STATE_EXIT;
 }
 
-void MenuReadADC1(int btn) {
+unsigned char MenuReadADC1(unsigned char event) {
   static unsigned char selected = 0;
   static int last_adc;
-  int adc;
 
-  if (btn) {
-    selected = (selected + 1) % 4;
-    screen_dirty = 1;
+  switch (event) {
+    case EVENT_SELECTED: {
+      int adc = analogRead(PINS_ADC[selected]);
+      if (adc != last_adc) {
+        last_adc = adc;
+        itoa(adc, b, 10);
+        ui::PrintStatusValue(STRS_ADC[selected], b);
+      }
+      return STATE_DRAW_SELECTED;
+    }
+    case EVENT_ACTIVE:
+      selected = (selected + 1) % 4;
+      return STATE_DRAW_SELECTED;
   }
-  adc = analogRead(PINS_ADC[selected]);
-  if (adc != last_adc || NeedRedraw()) {
-    last_adc = adc;
-    itoa(adc, b, 10);
-    ui::PrintStatusValue(STRS_ADC[selected], b);
-  }
+  return STATE_EXIT;
 }
 
-void MenuResetSettings(int btn) {
-  if (!btn) {
-    if (NeedRedraw())
+unsigned char MenuResetSettings(unsigned char event) {
+  switch (event) {
+    case EVENT_SELECTED:
       ui::PrintStatus("RESET");
-    return;
+      return STATE_SELECTING_MENU;
+    case EVENT_ACTIVE:
+      ubitx::ResetSettingsAndHalt();
   }
-
-  ubitx::ResetSettingsAndHalt();
+  // the above EVENT_ACTIVE case halts, so technically this is unreachable:
+  return STATE_EXIT;
 }
 
-
-int select, active;
-
-unsigned char EnterMenu() {
-  menu_state = 3;
-  return mainloop::SCREEN_MENU;
+unsigned char CallMenuHandler(unsigned char menu, unsigned char event) {
+  switch (menu) {
+    case  0: return MenuVfoToggle(event);
+    case  1: return MenuVfoCopy(event);
+    case  2: return MenuCwSpeed(event);
+    case  3: return MenuRitToggle(event);
+    case  4: return MenuBand(event);
+    case  5: return MenuSidebandToggle(event);
+    case  6: return MenuAdvanced(event);
+    case  7: return MenuSetupCalibration(event);
+    case  8: return MenuSetupCarrier(event);
+    case  9: return MenuSetupCwTone(event);
+    case 10: return MenuSetupCwDelay(event);
+    case 11: return MenuSetupKeyer(event);
+    case 12: return MenuSplitToggle(event);
+    case 13: return MenuTxToggle(event);
+    case 14: return MenuReadADC1(event);
+    case 15: return MenuResetSettings(event);
+    case 16: return MenuExit(event);
+  }
+  return STATE_INITIAL;
 }
 
-unsigned char DoMenu() {
-  if (menu_state == 3) { // first entry
-    menu_state = 2;
-    select = 0;
-    active = -1;
-    screen_dirty = 1;
+unsigned char StateWaitValue() {
+  int knob = encoder::ReadSlow();
+
+  if (knob != 0) {
+    if (knob < 0) value.current -= value.step;
+    if (knob > 0) value.current += value.step;
+    value.current = (value.current - value.min)
+        / value.step * value.step
+        + value.min;
+    if (value.current < value.min) value.current = value.min;
+    if (value.current > value.max) value.current = value.max;
+
+    if (value.PreviewCallback) value.PreviewCallback();
   }
 
-  int btnState = mainloop::FButtonClicked();
-
-  if (mainloop::buttons.f_held) {
-    mainloop::buttons.f_held = false;
-    menu_state = 0; // leave menu without inverse drawing
+  if (mainloop::buttons.f_clicked) {
+    mainloop::buttons.f_clicked = false;
+    return STATE_VALUE_RETURNED;
   }
+  return STATE_WAIT_VALUE;
+}
 
-  select += encoder::ReadSlow();
-  if (extended_menu && select > 169)
-    select = 169;
-  if (!extended_menu && select > 79)
-    select = 79;
-  if (select < 0)
-    select = 0;
+void DoMenu() {
+  static unsigned char state = STATE_INITIAL;
+  static unsigned char active_menu;
+  static int select; // encoder state
 
-  if (menu_state == 1) {  // request to close menu
-    menu_state = 0;
-    btnState = 0;  // draw menu without pressed button one last time
-    screen_dirty = 1;
-    ui::u8x8.setInverseFont(1);
-  }
-
-  if (select / 10 != active) {
-    active = select / 10;
-    screen_dirty = 1;
-  }
-
-  switch (active) {
-    case 0: MenuVfoCopy(btnState); break;
-    case 1: MenuVfoToggle(btnState); break;
-    case 2: MenuCwSpeed(btnState); break;
-    case 3: MenuRitToggle(btnState); break;
-    case 4: MenuBand(btnState); break;
-    case 5: MenuSidebandToggle(btnState); break;
-    case 6:
-      if (MenuSetup(btnState)) select = 70;
+  switch (state) {
+    case STATE_INITIAL:  // init
+      select = 0;
+      active_menu = 0;
+      state = STATE_DRAW_SELECTED;
       break;
-    case 7:
-      if (extended_menu)
-        MenuSetupCalibration(btnState);
-      else
-        MenuExit(btnState);
-      break;
-    case 8: MenuSetupCarrier(btnState); break;
-    case 9: MenuSetupCwTone(btnState); break;
-    case 10: MenuSetupCwDelay(btnState); break;
-    case 11: MenuSetupKeyer(btnState); break;
-    case 12: MenuSplitToggle(btnState); break;
-    case 13: MenuTxToggle(btnState); break;
-    case 14: MenuReadADC1(btnState); break;
-    case 15: MenuResetSettings(btnState); break;
-    case 16: MenuExit(btnState);
-  }
+    case STATE_DRAW_SELECTED:  // draw active menu item
+      state = CallMenuHandler(active_menu, EVENT_SELECTED);
+      // fall through
+    case STATE_SELECTING_MENU: {  // wait encoder change to select other menu, or click to enter
+      if (mainloop::buttons.f_clicked) {
+        mainloop::buttons.f_clicked = false;
+        state = STATE_MENU_ITEM_ACTIVE;  // handle menu item inside
+        break;
+      }
 
-  if (menu_state == 0) {  // leaving
-    ui::u8x8.setInverseFont(0);
-    ubitx::ActiveDelay(300);
-    ui::u8x8.clear();
-    return mainloop::EnterTuning();
+      if (mainloop::buttons.f_held) {
+        mainloop::buttons.f_held = false;
+        state = STATE_EXIT;  // exit
+        break;
+      }
+
+      select += encoder::ReadSlow();
+      if (advanced_menu && select > 169) select = 169;
+      if (!advanced_menu && select > 79) select = 79;
+      if (select < 0) select = 0;
+
+      unsigned char new_active_menu = select / 10;
+      if (!advanced_menu && new_active_menu == 7) new_active_menu = 16;
+
+      if (new_active_menu != active_menu) { // menu changed
+        active_menu = new_active_menu;
+        state = STATE_DRAW_SELECTED;  // draw active menu item
+        break;
+      }
+      break;
+    }
+    case STATE_MENU_ITEM_ACTIVE: // entered menu item handling
+      state = CallMenuHandler(active_menu, EVENT_ACTIVE);
+      break;
+    case STATE_WAIT_VALUE:
+      state = StateWaitValue();
+      break;
+    case STATE_VALUE_RETURNED:
+      state = CallMenuHandler(active_menu, EVENT_VALUE);
+      break;
+    case STATE_OPEN_ADVANCED:
+      advanced_menu = true;
+      select = 75;
+      active_menu = 7;
+      state = STATE_DRAW_SELECTED;
+      break;
+    case STATE_EXIT: // exit
+      // ui::u8x8.setInverseFont(1); TODO - where we do this now?
+      state = STATE_INITIAL;
+      ui::u8x8.clear();
+      mainloop::DoActiveApp = mainloop::DoTuning;
+      break;
   }
-  return mainloop::SCREEN_MENU;
 }
 
 }  // namespace

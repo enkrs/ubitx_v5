@@ -338,8 +338,8 @@ void SetMasterCal(long int cal) {
  */
 
 void ResetSettingsAndHalt() {
-  settings.master_cal = 154117;
-  settings.usb_carrier = 11056273l;
+  settings.master_cal = 22928; // 154117
+  settings.usb_carrier = 11056160l; // 11056273l
   settings.cw_side_tone = 800;
   settings.vfo_a = 3573000l;
   settings.vfo_b = 7074000l;
@@ -348,11 +348,6 @@ void ResetSettingsAndHalt() {
   settings.vfo_b_usb = true;
   settings.iambic_key = 1;
   settings.cw_delay_time = 60;
-
-  // Before type change
-  // Sketch uses 18520 bytes (60%) of program storage space. Maximum is 30720 bytes.
-  // Global variables use 1027 bytes (50%) of dynamic memory, leaving 1021 bytes for local variables. Maximum is 2048 bytes.
-  // NEXT        18580 - 60 bytes more.. crazy..
 
   EEPROM.put(eeprom::MASTER_CAL, settings.master_cal);
   EEPROM.put(eeprom::USB_CARRIER, settings.usb_carrier);

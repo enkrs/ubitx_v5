@@ -37,4 +37,5 @@ Program memory / global variables
   * 19960 / 1074 activescreen switch style
   * 19983 / 1072 EnterTuning, EnterMenu
   * 19944 / 1072
-  * 20066
+  * 20540 / 1079 currently
+  * 20578 / 1090 refactor to finite state machines

@@ -11,9 +11,9 @@
 namespace mainloop {
 
 Buttons buttons;
-unsigned char active_screen = 0; // 0 tuning, 1 menu
 unsigned long FBTN_HOLD_TIMEOUT = 500;
 
+void (*DoActiveApp)();
 
 // returns 1 if the button is pressed
 // handles debounce
@@ -46,28 +46,7 @@ bool PttDown() {
 
   return now;
 }
-
-/**
- * The PTT is checked only if we are not already in a cw transmit session
- * If the PTT is pressed, we shift to the ritbase if the rit was on
- * flip the T/R line to T and update the display to denote transmission
- */
-
-void CheckTx() {	
-  //we don't check for ptt when transmitting cw
-  if (keyer::cw_timeout > 0)
-    return;
-  //we don't check for ptt tx down by cat
-  if (cat::tx_cat)
-    return;
     
-  if (ubitx::in_tx == 0 && buttons.ptt_down)
-    ubitx::TxStartSsb();
-	
-  if (ubitx::in_tx == 1 && !buttons.ptt_down)
-    ubitx::TxStop();
-}
-
 void CheckButtons() {
   static unsigned long hold_time = 0;
   static bool held_dispatched = false;
@@ -95,96 +74,106 @@ void CheckButtons() {
   buttons.ptt_down = PttDown();
 }
 
-bool FButtonClicked() {
-  if (!buttons.f_clicked)
-    return false;
-
-  buttons.f_clicked = false;
-  return true;
+/**
+ * this function is repeatedly called to handle transmission
+ */
+void DoTx() {
+  static unsigned char state = 0;
+  enum DO_TX_STATES {
+    STATE_INITIAL,
+    STATE_IN_TX
+  };
+  switch (state) {
+    case STATE_INITIAL:
+      state = STATE_IN_TX;
+      ubitx::TxStartSsb();
+      break;
+    case STATE_IN_TX:
+      if (!buttons.ptt_down) { // ptt has been released
+        ubitx::TxStop();
+      }
+      if (!ubitx::in_tx) { // tx has been canceled
+        state = STATE_INITIAL;
+        DoActiveApp = DoTuning;
+        break;
+      }
+      // TODO update power/swr readings here
+      break;
+  }
 }
-
-unsigned char EnterTuning() {
-  ui::UpdateDisplay();
-  return SCREEN_TUNING;
-}
-
 
 /**
- * The tuning jumps by 50 Hz on each step when you tune slowly
- * As you spin the encoder faster, the jump size also increases 
- * This way, you can quickly move to another band by just spinning the 
- * tuning knob
+ * This function is the default radio screen. Called repeatedly
+ * while tuning. 
  */
-unsigned char DoTuning() {
-  ui::UpdateVoltage();
+void DoTuning() {
+  static unsigned char state = 0;
+  enum DO_TUNING_STATES {
+    STATE_INITIAL,
+    STATE_LOOP
+  };
+  switch (state) {
+    case STATE_INITIAL:
+      ui::UpdateDisplay();
+      state = STATE_LOOP;
+      break;
+    case STATE_LOOP: // loop
+      ui::UpdateVoltage();
 
-  if (FButtonClicked()) { // enter the menu
-    return menu::EnterMenu();
+      if (buttons.f_clicked) { // enter the menu
+        buttons.f_clicked = false;
+        state = STATE_INITIAL;
+        DoActiveApp = menu::DoMenu;
+        break;
+      }
+
+      if (buttons.f_held) {
+        buttons.f_held = false;
+        if (ubitx::status.shift_mode == ubitx::SHIFT_RIT) {
+          ubitx::RitDisable();
+        } else {
+          ubitx::VfoCopy(/*save=*/true);
+        }
+        ui::UpdateDisplay();
+        break;
+      }
+
+      if ((keyer::cw_timeout == 0)  // don't check for ptt when transmitting cw
+          && (!cat::tx_cat)         // don't check for ptt tx down by cat
+          && (buttons.ptt_down)) {
+        state = 0;
+        DoActiveApp = DoTx;
+        break;
+      }
+
+      int knob = encoder::Read();
+      if (knob == 0) break;
+      if (ubitx::status.shift_mode == ubitx::SHIFT_RIT) {
+        // Rit tuning
+        if (knob < 0) ubitx::frequency -= 100l;
+        else if (knob > 0) ubitx::frequency += 100;
+      } else {
+        // Normal tuning
+        if (abs(knob) > 6) ubitx::frequency += knob * 1000;
+        else ubitx::frequency += knob * 50;
+      }
+
+      ubitx::SetFrequency(ubitx::frequency);
+      ui::UpdateDisplay();
+      break;
   }
-
-  if (buttons.f_held) {
-    buttons.f_held = false;
-    if (ubitx::status.shift_mode == ubitx::SHIFT_RIT) {
-      ubitx::RitDisable();
-    } else {
-      ubitx::VfoSwap(/*save=*/true);
-    }
-    ui::UpdateDisplay();
-    return SCREEN_TUNING;
-  }
-
-  if (ubitx::in_tx) return SCREEN_TUNING; // Tuning only when RX
-  int knob = encoder::Read();
-
-  if (knob == 0) return SCREEN_TUNING;
-
-  if (ubitx::status.shift_mode == ubitx::SHIFT_RIT) {
-    // Rit tuning
-    if (knob < 0)
-      ubitx::frequency -= 100l;
-    else if (knob > 0)
-      ubitx::frequency += 100;
-  } else {
-    // Normal tuning
-    unsigned long prev_freq = ubitx::frequency;
-    if (abs(knob) > 5)
-      ubitx::frequency += knob * 1000;
-    else 
-      ubitx::frequency += knob * 50;
-
-    if (prev_freq < 10000000l && ubitx::frequency >= 10000000l)
-      ubitx::status.is_usb = true;
-      
-    if (prev_freq >= 10000000l && ubitx::frequency < 10000000l)
-      ubitx::status.is_usb = false;
-  }
-
-  ubitx::SetFrequency(ubitx::frequency);
-  ui::UpdateDisplay();
-  return SCREEN_TUNING;
 }
 
-// TODO:
 // The main loop has multiple states affected by the buttons
 //
-// TUNING: display shows frequency, dail adjusts freq or rit
-// MENU: display shows menu list or selected item and adjusts
-// TX: radio is transmitting
+// DoTuning: display shows frequency, dail adjusts freq or rit
+// DoMenu: display shows menu list or selected item and adjusts
+// DoTx: radio is transmitting
 //
-// The button monitoring returns values
-// ptt_event  PTT_UP > PTT_FALLING > PTT_DOWN > PTT_RAISING
-// fbtn_event F_UP > F_CLICK
-//                 > F_HOLD
-
 
 void Run() {
-  CheckButtons();
-  CheckTx();
-
-  switch (active_screen) {
-    case SCREEN_TUNING: active_screen = DoTuning(); break;
-    case SCREEN_MENU: active_screen = menu::DoMenu(); break;
-  }
+  CheckButtons(); // update buttons - debounces, clicks
+  DoActiveApp(); // DoTuning, DoMenu or DoTx
 }
 
 }  // namespace
@@ -217,7 +206,7 @@ void setup() {
   ubitx::SetFrequency(ubitx::settings.vfo_a);
   ubitx::SidebandSet(ubitx::settings.vfo_a_usb);
 
-  mainloop::active_screen = mainloop::EnterTuning();
+  mainloop::DoActiveApp = mainloop::DoTuning;
 }
 
 // Arduino loop function

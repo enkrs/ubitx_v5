@@ -3,10 +3,8 @@
 
 namespace menu {
 
-extern char menu_state;
-unsigned char EnterMenu();
-unsigned char DoMenu();
+void DoMenu();
 
-}
+}  // namespace
 
 #endif  // UBITX_MENU_H_
