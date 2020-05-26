@@ -52,8 +52,8 @@ void DrawWaitKnobScreen(const char* title, const char *units) {
 }
 
 // A generic control to read variable values
-long int WaitKnobValue(long int minimum, long int maximum, long int step_size,
-                       int initial, void (*ValueCallback)(long int),
+long int WaitKnobValue(long int minimum, long int maximum, int step_size,
+                       long int initial, void (*ValueCallback)(long int),
                        bool silent) {
   int knob = 0;
   long int knob_value = initial;
@@ -165,6 +165,20 @@ void MenuVfoToggle(int btn) {
 }
 
 // Menu #4
+void MenuVfoCopy(int btn) {
+  if (!btn) {
+    if (NeedRedraw()) {
+      ui::PrintStatusValue("VFO", "A=B");
+    }
+    return;
+  }
+
+  ubitx::VfoCopy(/* save=*/true);
+
+  menu_state = 1;
+}
+
+// Menu #4
 void MenuSidebandToggle(int btn) {
   if (!btn) {
     if (NeedRedraw()) {
@@ -212,7 +226,7 @@ void MenuCwSpeed(int btn) {
   }
 
   DrawWaitKnobScreen("CW SPEED", STR_WPM);
-  wpm = WaitKnobValue(1, 100, 1,  wpm, nullptr, false);
+  wpm = WaitKnobValue(1, 100, 1, wpm, nullptr, false);
 
   ubitx::CwSpeedSet(1200 / wpm);
 
@@ -251,6 +265,15 @@ int MenuSetup(int btn) {
   return 0;
 }
 
+void PreviewCalibration(long int adjust) {
+  si5351::SetCalibration(adjust);
+  si5351::SetFreq(0, ubitx::settings.usb_carrier);
+  ubitx::SetFrequency(ubitx::frequency);
+
+  ultoa(adjust, b, DEC);
+  ui::PrintLine(5, b);
+}
+
 void MenuSetupCalibration(int btn) {
   if (!btn) {
     if (NeedRedraw()) {
@@ -260,21 +283,26 @@ void MenuSetupCalibration(int btn) {
   }
 
   ui::u8x8.clear();
-  ui::u8x8.draw1x2String(1, 4, "NOT IMPLEMENTED");
-  ubitx::ActiveDelay(2000);
+  ui::u8x8.draw1x2String(1, 1, "ZERO BEAT TO");
+  ultoa(ubitx::frequency, b, DEC);
+  ui::u8x8.draw1x2String(1, 3, b);
+
+  ubitx::SetMasterCal(
+    WaitKnobValue(-875000, 875000, 875,
+                  ubitx::settings.master_cal, PreviewCalibration, true)
+  );
+
   menu_state = 1;
   // calibrateClock();
 }
 
 void PreviewCarrier(long int adjust) {
-  unsigned long long carrier = 11000000 + adjust;
-  si5351::SetFreq(0, carrier);
-  ultoa(carrier, b, DEC);
+  si5351::SetFreq(0, adjust);
+  ultoa(adjust, b, DEC);
   ui::PrintLine(4, b);
 }
 
 void MenuSetupCarrier(int btn) {
-  unsigned long long carrier;
   if (!btn) {
     if (NeedRedraw()) {
       ui::PrintStatus("CAL BFO");
@@ -284,10 +312,10 @@ void MenuSetupCarrier(int btn) {
 
   DrawWaitKnobScreen("CALIBRATE BFO", "");
   // Values from 11000000 to 11099999
-  carrier = 11000000 + WaitKnobValue(0, 99999, 1,
-                                     ubitx::settings.usb_carrier - 11000000,
-                                     PreviewCarrier, false);
-  ubitx::SetUsbCarrier(carrier);
+  ubitx::SetUsbCarrier(
+    WaitKnobValue(11000000, 11099999, 1,
+                  ubitx::settings.usb_carrier, PreviewCarrier, true)
+  );
   menu_state = 1;
 }
 
@@ -306,8 +334,8 @@ void MenuSetupCwTone(int btn) {
   }
 
   DrawWaitKnobScreen(STR_CW_TONE, "HZ");
-  unsigned int tone = WaitKnobValue(100, 2000, 10, ubitx::settings.cw_side_tone,
-                                    PreviewSidetone, false);
+  unsigned int tone = WaitKnobValue(100, 2000, 10, ubitx::settings.cw_side_tone, PreviewSidetone, false);
+
   noTone(hw::CW_TONE);
   ubitx::CwToneSet(tone);
 
@@ -325,8 +353,7 @@ void MenuSetupCwDelay(int btn) {
   }
 
   DrawWaitKnobScreen(STR_CW_DELAY, "MS");
-  ubitx::CwDelayTimeSet(WaitKnobValue(10, 1010, 50,
-                        ubitx::settings.cw_delay_time, nullptr, false));
+  ubitx::CwDelayTimeSet(WaitKnobValue(10, 1010, 50, ubitx::settings.cw_delay_time, nullptr, false));
 
   menu_state = 1;
 }
@@ -346,9 +373,7 @@ void MenuSetupKeyer(int btn) {
   }
 
   DrawWaitKnobScreen(STR_CW_KEY, "");
-
-  ubitx::IambicKeySet(WaitKnobValue(0, 2, 1, ubitx::settings.iambic_key,
-                                    PreviewKeyer, true));
+  ubitx::IambicKeySet(WaitKnobValue(0, 2, 1, ubitx::settings.iambic_key, PreviewKeyer, true));
 
   menu_state = 1;
 }
@@ -396,7 +421,12 @@ void MenuResetSettings(int btn) {
 
 int select, active;
 
-void DoMenu() {
+unsigned char EnterMenu() {
+  menu_state = 3;
+  return mainloop::SCREEN_MENU;
+}
+
+unsigned char DoMenu() {
   if (menu_state == 3) { // first entry
     menu_state = 2;
     select = 0;
@@ -406,9 +436,14 @@ void DoMenu() {
 
   int btnState = mainloop::FButtonClicked();
 
+  if (mainloop::buttons.f_held) {
+    mainloop::buttons.f_held = false;
+    menu_state = 0; // leave menu without inverse drawing
+  }
+
   select += encoder::ReadSlow();
-  if (extended_menu && select > 159)
-    select = 159;
+  if (extended_menu && select > 169)
+    select = 169;
   if (!extended_menu && select > 79)
     select = 79;
   if (select < 0)
@@ -427,12 +462,12 @@ void DoMenu() {
   }
 
   switch (active) {
-    case 0: MenuBand(btnState); break;
-    case 1: MenuRitToggle(btnState); break;
-    case 2: MenuVfoToggle(btnState); break;
-    case 3: MenuSidebandToggle(btnState); break;
-    case 4: MenuSplitToggle(btnState); break;
-    case 5: MenuCwSpeed(btnState); break;
+    case 0: MenuVfoCopy(btnState); break;
+    case 1: MenuVfoToggle(btnState); break;
+    case 2: MenuCwSpeed(btnState); break;
+    case 3: MenuRitToggle(btnState); break;
+    case 4: MenuBand(btnState); break;
+    case 5: MenuSidebandToggle(btnState); break;
     case 6:
       if (MenuSetup(btnState)) select = 70;
       break;
@@ -446,18 +481,20 @@ void DoMenu() {
     case 9: MenuSetupCwTone(btnState); break;
     case 10: MenuSetupCwDelay(btnState); break;
     case 11: MenuSetupKeyer(btnState); break;
-    case 12: MenuTxToggle(btnState); break;
-    case 13: MenuReadADC1(btnState); break;
-    case 14: MenuResetSettings(btnState); break;
-    case 15: MenuExit(btnState);
+    case 12: MenuSplitToggle(btnState); break;
+    case 13: MenuTxToggle(btnState); break;
+    case 14: MenuReadADC1(btnState); break;
+    case 15: MenuResetSettings(btnState); break;
+    case 16: MenuExit(btnState);
   }
 
   if (menu_state == 0) {  // leaving
     ui::u8x8.setInverseFont(0);
     ubitx::ActiveDelay(300);
     ui::u8x8.clear();
-    ui::UpdateDisplay();
+    return mainloop::EnterTuning();
   }
+  return mainloop::SCREEN_MENU;
 }
 
 }  // namespace

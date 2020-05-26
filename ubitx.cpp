@@ -272,8 +272,10 @@ void VfoSwap(bool save) {
   if (status.vfo_a_active) {
     settings.vfo_a = frequency;
     settings.vfo_a_usb = status.is_usb;
-    if (save) EEPROM.put(eeprom::VFO_A, settings.vfo_a);
-    if (save) EEPROM.put(eeprom::VFO_A_USB, settings.vfo_a_usb);
+    if (save) {
+      EEPROM.put(eeprom::VFO_A, settings.vfo_a);
+      EEPROM.put(eeprom::VFO_A_USB, settings.vfo_a_usb);
+    }
 
     status.vfo_a_active = false;
     frequency = settings.vfo_b;
@@ -281,14 +283,30 @@ void VfoSwap(bool save) {
   } else {
     settings.vfo_b = frequency;
     settings.vfo_b_usb = status.is_usb;
-    if (save) EEPROM.put(eeprom::VFO_B, settings.vfo_b);
-    if (save) EEPROM.put(eeprom::VFO_B_USB, settings.vfo_b_usb);
+    if (save) {
+      EEPROM.put(eeprom::VFO_B, settings.vfo_b);
+      EEPROM.put(eeprom::VFO_B_USB, settings.vfo_b_usb);
+    }
 
     status.vfo_a_active = true;
     frequency = settings.vfo_a;
     status.is_usb = settings.vfo_a_usb;
   }
   SetFrequency(frequency);
+}
+
+void VfoCopy(bool save) {
+  RitDisable();
+  settings.vfo_a = frequency;
+  settings.vfo_a_usb = status.is_usb;
+  settings.vfo_b = frequency;
+  settings.vfo_b_usb = status.is_usb;
+  if (save) {
+    EEPROM.put(eeprom::VFO_A, settings.vfo_a);
+    EEPROM.put(eeprom::VFO_A_USB, settings.vfo_a_usb);
+    EEPROM.put(eeprom::VFO_B, settings.vfo_b);
+    EEPROM.put(eeprom::VFO_B_USB, settings.vfo_b_usb);
+  }
 }
 
 void SplitEnable() {
@@ -307,6 +325,12 @@ void SetUsbCarrier(unsigned long long carrier) {
 
   si5351::SetFreq(0, settings.usb_carrier);
   SetFrequency(frequency);
+}
+
+void SetMasterCal(long int cal) {
+  settings.master_cal = cal;
+  EEPROM.put(eeprom::MASTER_CAL, settings.master_cal);
+  InitOscillators();
 }
 
 /**

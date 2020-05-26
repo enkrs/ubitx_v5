@@ -11,13 +11,16 @@
 namespace mainloop {
 
 Buttons buttons;
+unsigned char active_screen = 0; // 0 tuning, 1 menu
+unsigned long FBTN_HOLD_TIMEOUT = 500;
+
 
 // returns 1 if the button is pressed
 // handles debounce
 bool FBtnDown() {
-  bool now = 0, prev = 0;
-
+  bool now = false, prev = false;
   int i = 0;
+
   do {
     now = (PINC & PC2_FBUTTON) == 0; // 0 means button short to ground
     if (prev != now) {
@@ -29,11 +32,19 @@ bool FBtnDown() {
   return now;
 }
 
-char PttDown() {
-  for (int i = 0; i < debounce_count; i++)
-    if ((PINC & PC3_PTT) != 0) return 0;
+bool PttDown() {
+  bool now = false, prev = false;
+  int i = 0;
 
-  return 1;
+  do {
+    now = (PINC & PC3_PTT) == 0; // 0 means button short to ground
+    if (prev != now) {
+      prev = now;
+      i = 0;
+    }
+  } while (i++ < debounce_count);
+
+  return now;
 }
 
 /**
@@ -50,28 +61,35 @@ void CheckTx() {
   if (cat::tx_cat)
     return;
     
-  if (ubitx::in_tx == 0 && (PINC & PC3_PTT) == 0) {
-    for (int i = 0; i < debounce_count; i++)
-      if ((PINC & PC3_PTT) != 0) return;  // debounce
+  if (ubitx::in_tx == 0 && buttons.ptt_down)
     ubitx::TxStartSsb();
-    return;
-  }
 	
-  if (ubitx::in_tx == 1 && (PINC & PC3_PTT) != 0) {
-    for (int i = 0; i < debounce_count; i++)
-      if ((PINC & PC3_PTT) == 0) return;  // debounce
+  if (ubitx::in_tx == 1 && !buttons.ptt_down)
     ubitx::TxStop();
-    return;
-  }
 }
 
 void CheckButtons() {
+  static unsigned long hold_time = 0;
+  static bool held_dispatched = false;
   bool prev_f_down = buttons.f_down;
 
   buttons.f_down = FBtnDown();
-  if (prev_f_down == true and buttons.f_down == false) {
-    // released
-    buttons.f_clicked = true;
+  if (buttons.f_down == true) {
+    unsigned long now = millis();
+    if (prev_f_down == false) // pushing button down
+      hold_time = now + FBTN_HOLD_TIMEOUT;
+
+    if (!held_dispatched && hold_time && now > hold_time) { // time passed
+      buttons.f_held = true;
+      held_dispatched = true;
+    }
+  }
+
+  if (buttons.f_down == false) {
+    if (prev_f_down == true && !held_dispatched) // releasing button
+      buttons.f_clicked = true;
+    hold_time = 0;
+    held_dispatched = false;
   }
 
   buttons.ptt_down = PttDown();
@@ -85,6 +103,11 @@ bool FButtonClicked() {
   return true;
 }
 
+unsigned char EnterTuning() {
+  ui::UpdateDisplay();
+  return SCREEN_TUNING;
+}
+
 
 /**
  * The tuning jumps by 50 Hz on each step when you tune slowly
@@ -92,12 +115,28 @@ bool FButtonClicked() {
  * This way, you can quickly move to another band by just spinning the 
  * tuning knob
  */
-void DoTuning() {
-  if (ubitx::in_tx) return; // Tuning only when RX
+unsigned char DoTuning() {
+  ui::UpdateVoltage();
 
+  if (FButtonClicked()) { // enter the menu
+    return menu::EnterMenu();
+  }
+
+  if (buttons.f_held) {
+    buttons.f_held = false;
+    if (ubitx::status.shift_mode == ubitx::SHIFT_RIT) {
+      ubitx::RitDisable();
+    } else {
+      ubitx::VfoSwap(/*save=*/true);
+    }
+    ui::UpdateDisplay();
+    return SCREEN_TUNING;
+  }
+
+  if (ubitx::in_tx) return SCREEN_TUNING; // Tuning only when RX
   int knob = encoder::Read();
 
-  if (knob == 0) return;
+  if (knob == 0) return SCREEN_TUNING;
 
   if (ubitx::status.shift_mode == ubitx::SHIFT_RIT) {
     // Rit tuning
@@ -122,6 +161,7 @@ void DoTuning() {
 
   ubitx::SetFrequency(ubitx::frequency);
   ui::UpdateDisplay();
+  return SCREEN_TUNING;
 }
 
 // TODO:
@@ -136,24 +176,14 @@ void DoTuning() {
 // fbtn_event F_UP > F_CLICK
 //                 > F_HOLD
 
+
 void Run() {
   CheckButtons();
-
   CheckTx();
 
-  if (!menu::menu_state && FButtonClicked()) {
-    if (ubitx::in_tx) {
-      ubitx::TxStop(); // stop tx with button
-    } else {
-      menu::menu_state = 3;
-    }
-  }
-
-  if (menu::menu_state) {
-    menu::DoMenu();
-  } else {
-    DoTuning();
-    ui::UpdateVoltage();
+  switch (active_screen) {
+    case SCREEN_TUNING: active_screen = DoTuning(); break;
+    case SCREEN_MENU: active_screen = menu::DoMenu(); break;
   }
 }
 
@@ -186,7 +216,8 @@ void setup() {
 
   ubitx::SetFrequency(ubitx::settings.vfo_a);
   ubitx::SidebandSet(ubitx::settings.vfo_a_usb);
-  ui::UpdateDisplay();
+
+  mainloop::active_screen = mainloop::EnterTuning();
 }
 
 // Arduino loop function

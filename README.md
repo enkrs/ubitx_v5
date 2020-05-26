@@ -1,4 +1,4 @@
-# ubitx_v5
+# ubitx v5
 Firmware for the version 5 of the ubitx
 
 # Code milestones
@@ -11,8 +11,7 @@ Program memory / global variables
   * 22058 / 1209 Cat control as separate task
   * 22262 / 1213 Menu/main migrated to task
   * 22544 / 1252 Keyer migrated to task
-  * 17924 /  903 Tasks without scheduler lib
-  * 20000 / 1111 WHAT???
+  * 20000 / 1111 Tasks without scheduler lib, also comented out cat/keyer
   * 20128 / 1111 before #define > const change
   * 20128 / 1111 eeprom namespace
   * 20128 / 1111 hw namespace
@@ -31,3 +30,11 @@ Program memory / global variables
   * 19896 / 1073 function parameter bool
   * 19936 / 1073 cw delay settings
   * 19956 / 1073 fix buttoclick loop
+  * 19982 / 1073 pttdown
+  * 19964 / 1073 CheckTx refactor
+  * 19936 / 1073
+  * 20068 / 1075 DoActiveApp pointer style
+  * 19960 / 1074 activescreen switch style
+  * 19983 / 1072 EnterTuning, EnterMenu
+  * 19944 / 1072
+  * 20066

@@ -83,6 +83,7 @@ void CwToneSet(unsigned int tone);
 void CwDelayTimeSet(unsigned int delay_time);
 void SetFrequency(unsigned long f);
 void SetUsbCarrier(unsigned long long carrier);
+void SetMasterCal(long int cal);
 void SidebandSet(bool usb);
 void IambicKeySet(unsigned char key);
 void SplitDisable();
@@ -91,6 +92,7 @@ void TxStartSsb();
 void TxStartCw();
 void TxStop();
 void VfoSwap(bool save);
+void VfoCopy(bool save);
 
 }  // namespace
 

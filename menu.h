@@ -4,7 +4,8 @@
 namespace menu {
 
 extern char menu_state;
-void DoMenu();
+unsigned char EnterMenu();
+unsigned char DoMenu();
 
 }
 
