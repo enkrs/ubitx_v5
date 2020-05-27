@@ -10,9 +10,12 @@ namespace ui {
 
 extern U8X8_SSD1306_128X64_NONAME_HW_I2C u8x8;
 
-void PrintLine(unsigned char linenmbr, const char *c);
-void PrintStatus(const char *c);
-void PrintStatusValue(const char *c, const char *v);
+/** Refactoring ui more portable
+ * Code size before program 20578 bytes / variables 1090 bytes.
+ * Code size after program  20578 bytes / variables 1090 bytes.
+ */
+void PrintLine(unsigned char line_nr, const char *c);
+void PrintLineValue(unsigned char line_nr, const char *c, const char *v);
 void UpdateDisplay();
 void UpdateVoltage();
 

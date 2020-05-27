@@ -62,14 +62,13 @@ void DrawWaitKnobScreen(const char* title, const char *units) {
 void PreviewCurrentValue() {
   ltoa(value.current, b, 10);
   int8_t i = wait_knob_right - strlen(b) * 2;
-  if (i > 0) {
-    ui::u8x8.setFont(U8X8_DIGITFONT);
-    ui::u8x8.drawString(i, 3, b);
-    ui::u8x8.setFont(U8X8_MAINFONT);
-    while (i-- > 1) {
-      ui::u8x8.draw1x2Glyph(i, 3, ' ');
-      ui::u8x8.drawGlyph(i, 5, ' ');
-    }
+
+  ui::u8x8.setFont(U8X8_DIGITFONT);
+  ui::u8x8.drawString(i, 3, b);
+  ui::u8x8.setFont(U8X8_MAINFONT);
+  while (i-- > 1) {
+    ui::u8x8.draw1x2Glyph(i, 3, ' ');
+    ui::u8x8.drawGlyph(i, 5, ' ');
   }
 }
 
@@ -92,10 +91,10 @@ void PreviewBand() {
 unsigned char MenuBand(unsigned char event) {
   switch (event) {
     case EVENT_SELECTED:
-      ui::PrintStatusValue(STR_BAND_SELECT, ">");
+      ui::PrintLineValue(6, STR_BAND_SELECT, ">");
       return STATE_SELECTING_MENU;
     case EVENT_ACTIVE:
-      ui::PrintStatus(STR_BAND_SELECT);
+      ui::PrintLine(6, STR_BAND_SELECT);
       ubitx::RitDisable();
 
       SetWaitValues(ubitx::LOWEST_FREQ / 100000l,
@@ -113,7 +112,7 @@ unsigned char MenuBand(unsigned char event) {
 unsigned char MenuRitToggle(unsigned char event) {
   switch (event) {
     case EVENT_SELECTED:
-      ui::PrintStatusValue("RIT", ubitx::status.shift_mode == ubitx::SHIFT_RIT ? STR_ON : STR_OFF);
+      ui::PrintLineValue(6, "RIT", ubitx::status.shift_mode == ubitx::SHIFT_RIT ? STR_ON : STR_OFF);
       return STATE_SELECTING_MENU;
     case EVENT_ACTIVE:
       if (ubitx::status.shift_mode == ubitx::SHIFT_RIT)
@@ -128,7 +127,7 @@ unsigned char MenuRitToggle(unsigned char event) {
 unsigned char MenuVfoToggle(unsigned char event) {
   switch (event) {
     case EVENT_SELECTED:
-      ui::PrintStatusValue("VFO", ubitx::status.vfo_a_active ? "A" : "B");
+      ui::PrintLineValue(6, "VFO", ubitx::status.vfo_a_active ? "A" : "B");
       return STATE_SELECTING_MENU;
     case EVENT_ACTIVE:
       ubitx::VfoSwap(/* save=*/true);
@@ -140,7 +139,7 @@ unsigned char MenuVfoToggle(unsigned char event) {
 unsigned char MenuVfoCopy(unsigned char event) {
   switch (event) {
     case EVENT_SELECTED:
-      ui::PrintStatusValue("VFO", "A=B");
+      ui::PrintLineValue(6, "VFO", "A=B");
       return STATE_SELECTING_MENU;
     case EVENT_ACTIVE:
       ubitx::VfoCopy(/* save=*/true);
@@ -152,7 +151,7 @@ unsigned char MenuVfoCopy(unsigned char event) {
 unsigned char MenuSidebandToggle(unsigned char event) {
   switch (event) {
     case EVENT_SELECTED:
-      ui::PrintStatusValue("MODE", ubitx::status.is_usb ? "USB" : "LSB");
+      ui::PrintLineValue(6, "MODE", ubitx::status.is_usb ? "USB" : "LSB");
       return STATE_SELECTING_MENU;
     case EVENT_ACTIVE:
       ubitx::SidebandSet(!ubitx::status.is_usb);
@@ -164,7 +163,7 @@ unsigned char MenuSidebandToggle(unsigned char event) {
 unsigned char MenuSplitToggle(unsigned char event) {
   switch (event) {
     case EVENT_SELECTED:
-      ui::PrintStatusValue("SPLIT", ubitx::status.shift_mode == ubitx::SHIFT_SPLIT ? STR_ON : STR_OFF);
+      ui::PrintLineValue(6, "SPLIT", ubitx::status.shift_mode == ubitx::SHIFT_SPLIT ? STR_ON : STR_OFF);
       return STATE_SELECTING_MENU;
     case EVENT_ACTIVE:
       if (ubitx::status.shift_mode == ubitx::SHIFT_SPLIT)
@@ -182,7 +181,7 @@ unsigned char MenuCwSpeed(unsigned char event) {
       itoa(1200 / ubitx::settings.cw_speed, b, 10);
       strcat(b, " ");
       strcat(b, STR_WPM);
-      ui::PrintStatusValue("CW", b);
+      ui::PrintLineValue(6, "CW", b);
       return STATE_SELECTING_MENU;
     case EVENT_ACTIVE:
       DrawWaitKnobScreen("CW SPEED", STR_WPM);
@@ -199,7 +198,7 @@ unsigned char MenuCwSpeed(unsigned char event) {
 unsigned char MenuExit(unsigned char event) {
   switch (event) {
     case EVENT_SELECTED:
-      ui::PrintStatus("EXIT MENU");
+      ui::PrintLine(6, "EXIT MENU");
       return STATE_SELECTING_MENU;
     case EVENT_ACTIVE:
       return STATE_EXIT;
@@ -214,7 +213,7 @@ unsigned char MenuExit(unsigned char event) {
 unsigned char MenuAdvanced(unsigned char event) {
   switch (event) {
     case EVENT_SELECTED:
-      ui::PrintStatusValue("ADVANCED", advanced_menu ? STR_ON : ">");
+      ui::PrintLineValue(6, "ADVANCED", advanced_menu ? STR_ON : ">");
       return STATE_SELECTING_MENU;
     case EVENT_ACTIVE:
       if (!advanced_menu) {
@@ -238,7 +237,7 @@ void PreviewCalibration() {
 unsigned char MenuSetupCalibration(unsigned char event) {
   switch (event) {
     case EVENT_SELECTED:
-      ui::PrintStatus("CALIBRATE");
+      ui::PrintLine(6, "CALIBRATE");
       return STATE_SELECTING_MENU;
     case EVENT_ACTIVE:
       ui::u8x8.clear();
@@ -265,7 +264,7 @@ void PreviewCarrier() {
 unsigned char MenuSetupCarrier(unsigned char event) {
   switch (event) {
     case EVENT_SELECTED:
-      ui::PrintStatus("CAL BFO");
+      ui::PrintLine(6, "CAL BFO");
       return STATE_SELECTING_MENU;
     case EVENT_ACTIVE:
       DrawWaitKnobScreen("CALIBRATE BFO", "");
@@ -291,7 +290,7 @@ unsigned char MenuSetupCwTone(unsigned char event) {
     case EVENT_SELECTED:
       itoa(ubitx::settings.cw_side_tone, b, 10);
       strcat(b, " HZ");
-      ui::PrintStatusValue(STR_CW_TONE, b);
+      ui::PrintLineValue(6, STR_CW_TONE, b);
       return STATE_SELECTING_MENU;
     case EVENT_ACTIVE:
       DrawWaitKnobScreen(STR_CW_TONE, "HZ");
@@ -311,7 +310,7 @@ unsigned char MenuSetupCwDelay(unsigned char event) {
     case EVENT_SELECTED:
       itoa(ubitx::settings.cw_delay_time, b, 10);
       strcat(b, " MS");
-      ui::PrintStatusValue(STR_CW_DELAY, b);
+      ui::PrintLineValue(6, STR_CW_DELAY, b);
       return STATE_SELECTING_MENU;
     case EVENT_ACTIVE:
       DrawWaitKnobScreen(STR_CW_DELAY, "MS");
@@ -335,7 +334,7 @@ void PreviewKeyer() {
 unsigned char MenuSetupKeyer(unsigned char event) {
   switch (event) {
     case EVENT_SELECTED:
-      ui::PrintStatusValue(STR_CW_KEY, STRS_IAMBIC[ubitx::settings.iambic_key]);
+      ui::PrintLineValue(6, STR_CW_KEY, STRS_IAMBIC[ubitx::settings.iambic_key]);
       return STATE_SELECTING_MENU;
     case EVENT_ACTIVE:
       DrawWaitKnobScreen(STR_CW_KEY, "");
@@ -351,7 +350,7 @@ unsigned char MenuSetupKeyer(unsigned char event) {
 unsigned char MenuTxToggle(unsigned char event) {
   switch (event) {
     case EVENT_SELECTED:
-      ui::PrintStatusValue("TX INHIBIT", ubitx::status.tx_inhibit ? STR_ON : STR_OFF);
+      ui::PrintLineValue(6, "TX INHIBIT", ubitx::status.tx_inhibit ? STR_ON : STR_OFF);
       return STATE_SELECTING_MENU;
     case EVENT_ACTIVE:
       ubitx::status.tx_inhibit = !ubitx::status.tx_inhibit;
@@ -370,7 +369,7 @@ unsigned char MenuReadADC1(unsigned char event) {
       if (adc != last_adc) {
         last_adc = adc;
         itoa(adc, b, 10);
-        ui::PrintStatusValue(STRS_ADC[selected], b);
+        ui::PrintLineValue(6, STRS_ADC[selected], b);
       }
       return STATE_DRAW_SELECTED;
     }
@@ -384,7 +383,7 @@ unsigned char MenuReadADC1(unsigned char event) {
 unsigned char MenuResetSettings(unsigned char event) {
   switch (event) {
     case EVENT_SELECTED:
-      ui::PrintStatus("RESET");
+      ui::PrintLine(6, "RESET");
       return STATE_SELECTING_MENU;
     case EVENT_ACTIVE:
       ubitx::ResetSettingsAndHalt();

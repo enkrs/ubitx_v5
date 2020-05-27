@@ -14,12 +14,7 @@ extern struct Buttons {
 
 extern void (*DoActiveApp)();
 
-void CheckButtons();
-bool FBtnDown();
-
 void DoTuning();
-
-void Run();
 
 }  // namespace
 

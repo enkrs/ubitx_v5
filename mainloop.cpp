@@ -50,9 +50,10 @@ bool PttDown() {
 void CheckButtons() {
   static unsigned long hold_time = 0;
   static bool held_dispatched = false;
-  bool prev_f_down = buttons.f_down;
 
+  bool prev_f_down = buttons.f_down;
   buttons.f_down = FBtnDown();
+
   if (buttons.f_down == true) {
     unsigned long now = millis();
     if (prev_f_down == false) // pushing button down
@@ -78,11 +79,12 @@ void CheckButtons() {
  * this function is repeatedly called to handle transmission
  */
 void DoTx() {
-  static unsigned char state = 0;
   enum DO_TX_STATES {
     STATE_INITIAL,
     STATE_IN_TX
   };
+  static unsigned char state = STATE_INITIAL;
+
   switch (state) {
     case STATE_INITIAL:
       state = STATE_IN_TX;
@@ -107,11 +109,12 @@ void DoTx() {
  * while tuning. 
  */
 void DoTuning() {
-  static unsigned char state = 0;
   enum DO_TUNING_STATES {
     STATE_INITIAL,
     STATE_LOOP
   };
+  static unsigned char state = STATE_INITIAL;
+
   switch (state) {
     case STATE_INITIAL:
       ui::UpdateDisplay();

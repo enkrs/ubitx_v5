@@ -18,31 +18,27 @@ int prev_voltage = -1;
 U8X8_SSD1306_128X64_NONAME_HW_I2C u8x8(U8X8_PIN_NONE);
 
 // The generic routine to display one line on the LCD
-void PrintLine(unsigned char linenmbr, const char *c) {
+void PrintLine(unsigned char line_nr, const char *c) {
   if (c[0] == 0) {
-    u8x8.clearLine(linenmbr);
-    u8x8.clearLine(linenmbr + 1);
+    u8x8.clearLine(line_nr);
+    u8x8.clearLine(line_nr + 1);
     return;
   }
 
-  u8x8.draw1x2String(1, linenmbr, c);
+  u8x8.draw1x2String(1, line_nr, c);
 
   // add white spaces until the end of the 16 characters line is reached
   for (unsigned char i = strlen(c); i < 15; i++) {
-    u8x8.draw1x2Glyph(i + 1, linenmbr, ' ');
+    u8x8.draw1x2Glyph(i + 1, line_nr, ' ');
   }
 }
 
 
-//  short cut to print to the first line
-void PrintStatus(const char *c) {
-  PrintLine(6, c);
-}
-void PrintStatusValue(const char *c, const char *v) {
-  u8x8.draw1x2String(1, 6, c);
-  u8x8.draw1x2String(15 - strlen(v) + 1, 6, v);
+void PrintLineValue(unsigned char line_nr, const char *c, const char *v) {
+  u8x8.draw1x2String(1, line_nr, c);
+  u8x8.draw1x2String(15 - strlen(v) + 1, line_nr, v);
   for (unsigned char i = strlen(c) + 1; i <= 15 - strlen(v); i++) {
-    u8x8.draw1x2Glyph(i, 6, ' ');
+    u8x8.draw1x2Glyph(i, line_nr, ' ');
   }
 }
 
