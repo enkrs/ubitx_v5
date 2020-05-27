@@ -53,7 +53,7 @@ void UpdateDisplay() {
     u8x8.setInverseFont(0);
   } else {
     // 123456789012345
-    // ______RIT_USB_A
+    // ....__RIT_USB_A
     //           13.7V
     switch (ubitx::status.shift_mode) {
       case 0:
@@ -71,7 +71,13 @@ void UpdateDisplay() {
     u8x8.draw1x2String(11, 1, ubitx::status.is_usb ? "USB " : "LSB ");
     u8x8.draw1x2Glyph(15, 1, ubitx::status.vfo_a_active ? 'A' : 'B');
   }
+  PrintFrequency();
 
+  last_v_update = 0; prev_voltage = -1;
+  UpdateVoltage();
+}
+
+void PrintFrequency() {
   char b[11]; // holds string up to "4294967295\0"
   ultoa(ubitx::frequency, b, DEC);
 
@@ -87,9 +93,6 @@ void UpdateDisplay() {
   u8x8.drawGlyph(12, 3, b[n++]);
   u8x8.drawGlyph(14, 3, b[n++]);
   u8x8.setFont(U8X8_MAINFONT);
-
-  last_v_update = 0; prev_voltage = -1;
-  UpdateVoltage();
 }
 
 void UpdateVoltage() {

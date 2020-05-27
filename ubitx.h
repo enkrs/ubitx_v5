@@ -62,6 +62,30 @@ extern struct Settings {
   int cw_delay_time;
 } settings;
 
+// Size before this struct/array : 20576 / 1090
+// Size after                      20874 / 1307 .. thats a lot
+struct BandList {
+  char name[5];
+  unsigned int min_khz;
+  unsigned int max_khz;
+};
+
+const BandList BAND_LIST[] = {
+  {"160M",  1810,  2000},
+  {" 80M",  3500,  3800},
+  {" 60M",  5351,  5367},
+  {" 40M",  7000,  7200},
+  {" 30M", 10100, 10150},
+  {" 20M", 14000, 14350},
+  {" 17M", 18068, 18168},
+  {" 15M", 21000, 21450},
+  {" 12M", 24890, 24990},
+  {"  CB", 26953, 27417},
+  {" 10M", 28000, 29700},
+  {"    ",     0, 30000}
+};
+extern unsigned char active_band;
+
 extern unsigned long frequency;
 
 extern char in_tx;

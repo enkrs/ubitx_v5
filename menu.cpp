@@ -75,7 +75,7 @@ void PreviewCurrentValue() {
 static const char* STR_ON = "ON";
 static const char* STR_OFF = "OFF";
 static const char* STR_WPM = "WPM";
-static const char* STR_BAND_SELECT = "BAND SELECT";
+static const char* STR_BAND = "BAND";
 static const char* STR_CW_DELAY = "CW DELAY";
 static const char* STR_CW_TONE = "CW TONE";
 static const char* STR_CW_KEY = "CW KEY";
@@ -85,16 +85,19 @@ static const int   PINS_ADC[4] = { hw::FBUTTON, hw::PTT, hw::ANALOG_KEYER, hw::A
 
 void PreviewBand() {
   ubitx::SetFrequency((ubitx::frequency % 100000l) + (value.current * 100000l));
-  ui::UpdateDisplay();
+  ui::u8x8.draw1x2String(12,1,ubitx::BAND_LIST[ubitx::active_band].name);
+  ui::PrintFrequency();
 }
 
 unsigned char MenuBand(unsigned char event) {
   switch (event) {
     case EVENT_SELECTED:
-      ui::PrintLineValue(6, STR_BAND_SELECT, ">");
+      ui::PrintLineValue(6, STR_BAND,
+                         ubitx::BAND_LIST[ubitx::active_band].name);
       return STATE_SELECTING_MENU;
     case EVENT_ACTIVE:
-      ui::PrintLine(6, STR_BAND_SELECT);
+      ui::u8x8.clear();
+      ui::PrintLine(6, STR_BAND);
       ubitx::RitDisable();
 
       SetWaitValues(ubitx::LOWEST_FREQ / 100000l,

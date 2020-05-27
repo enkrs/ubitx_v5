@@ -62,6 +62,7 @@ Status status;
 Settings settings;
 
 
+unsigned char active_band;
 // TODO: can we live with only one RIT variable?
 unsigned long frequency;
 unsigned long rit_rx_frequency;
@@ -157,6 +158,16 @@ void SetFrequency(unsigned long f) {
   }
     
   frequency = f;
+
+  unsigned int khz = frequency / 1000;
+  unsigned char i = 0;
+  for (i = 0; i < 12; i++) {
+    if ((khz >= BAND_LIST[i].min_khz) &&
+        (khz <= BAND_LIST[i].max_khz)) {
+      break;
+    }
+  }
+  active_band = i;
 }
 
 /**
