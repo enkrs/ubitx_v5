@@ -1,41 +1,23 @@
 # ubitx v5
 Firmware for the version 5 of the ubitx
 
-# Code milestones
-Program memory / global variables
-  * 20412 / 1123 CPP code conversion, before taskscheduler
-  * 22164 / 1186 Added task scheduler with one main task
-  * 22284 / 1186 Move actions from menu to main
-  * 22168 / 1186 Calibration menu use standard ui, refactor reset
-  * 21822 / 1170 EEPROM function refactor
-  * 22058 / 1209 Cat control as separate task
-  * 22262 / 1213 Menu/main migrated to task
-  * 22544 / 1252 Keyer migrated to task
-  * 20000 / 1111 Tasks without scheduler lib, also comented out cat/keyer
-  * 20128 / 1111 before #define > const change
-  * 20128 / 1111 eeprom namespace
-  * 20128 / 1111 hw namespace
-  * 20140 / 1111 encoder namespace
-  * 20140 / 1111 ui namespace
-  * 20140 / 1111 cat namespace
-  * 20126 / 1111 ubitx, settings namespace
-  * 20052 / 1107 si5351 namespace
-  * 20052 / 1107 mainloop namespace
-  * 20052 / 1107 menu namespace
-  * 19966 / 1123 buttons/encoder converted to PORT from digitalRead
-  * 19854 / 1073 c++ structs
-  * 19916 / 1073 some c++ bools
-  * 19916 / 1073 settings struct
-  * 19898 / 1073 struct zero init, buttons bool
-  * 19896 / 1073 function parameter bool
-  * 19936 / 1073 cw delay settings
-  * 19956 / 1073 fix buttoclick loop
-  * 19982 / 1073 pttdown
-  * 19964 / 1073 CheckTx refactor
-  * 19936 / 1073
-  * 20068 / 1075 DoActiveApp pointer style
-  * 19960 / 1074 activescreen switch style
-  * 19983 / 1072 EnterTuning, EnterMenu
-  * 19944 / 1072
-  * 20540 / 1079 currently
-  * 20578 / 1090 refactor to finite state machines
+This is my version of the v5 software for my ubitx radio build.
+Ubitx [https://www.hfsignals.com/index.php/ubitx-circuit-description/]
+is a hackable 10W multi band HF radio PCB that you can build for around
+150$.
+
+I'm using a tiny 128x64 OLED screen via i2c. Most of the buttons are
+corrected to digital pins (vs analog in the original) leaving the analog
+pins free for future measurements.
+
+Code is refactored into namespaced C++ and care is taken to reduce code
+size.
+
+I've implemented some variant of a non-blocking task scheduling loop,
+allowing me to do lot's of background stuff more easy in future.
+
+Menu logic has been refactored to hybrid of finite state machine / event
+loop.
+
+This is mostly a embedded c++ learning experience for me, but the radio
+does work and I use this software.
