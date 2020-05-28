@@ -229,11 +229,11 @@ unsigned char MenuAdvanced(unsigned char event) {
 }
 
 void PreviewCalibration() {
-  si5351::SetCalibration(value.current * 875);
+  si5351::SetCalibration((long)value.current * 875);
   si5351::SetFreq(0, ubitx::settings.usb_carrier);
   ubitx::SetFrequency(ubitx::frequency);
 
-  ltoa((long)(value.current * 875), b, DEC);
+  ltoa((long)value.current * 875, b, DEC);
   ui::PrintLine(5, b);
 }
 
@@ -248,11 +248,11 @@ unsigned char MenuSetupCalibration(unsigned char event) {
       ultoa(ubitx::frequency, b, DEC);
       ui::u8x8.draw1x2String(1, 3, b);
 
-      SetWaitValues(-1000, 1000, 1, ubitx::settings.master_cal / 875,
+      SetWaitValues(-10000, 10000, 1, ubitx::settings.master_cal / 875,
                     PreviewCalibration);
       return STATE_WAIT_VALUE;
     case EVENT_VALUE:
-      ubitx::SetMasterCal(value.current * 875);
+      ubitx::SetMasterCal((long)value.current * 875);
       return STATE_EXIT;
   }
   return STATE_EXIT;
@@ -273,11 +273,11 @@ unsigned char MenuSetupCarrier(unsigned char event) {
       DrawWaitKnobScreen("CALIBRATE BFO", "");
       //
       // Values from 11000000 to 11099999
-      SetWaitValues(-32000, 32000, 1, ubitx::settings.usb_carrier - 11053000,
+      SetWaitValues(-32000, 32000, 10, ubitx::settings.usb_carrier - 11053000,
                     PreviewCarrier);
       return STATE_WAIT_VALUE;
     case EVENT_VALUE:
-      ubitx::SetUsbCarrier(value.current);
+      ubitx::SetUsbCarrier(value.current + 11053000);
       return STATE_EXIT;
   }
   return STATE_EXIT;
