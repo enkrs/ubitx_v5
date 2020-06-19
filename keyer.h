@@ -5,6 +5,9 @@ namespace keyer {
 
 extern unsigned long cw_timeout;
 extern char keyer_control;
+
+void CwKeydown();
+void CwKeyUp();
 void Run();
 
 }

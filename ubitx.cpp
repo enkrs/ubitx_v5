@@ -349,8 +349,9 @@ void SetMasterCal(long int cal) {
  */
 
 void ResetSettingsAndHalt() {
-  settings.master_cal = 22928; // 154117
-  settings.usb_carrier = 11056160l; // 11056273l
+  // Jaunākā kalibrācija veikta 2020-06-02 22:03 MASTER 161000, BFO 11056586
+  settings.master_cal = 161000l;
+  settings.usb_carrier = 11056586l;
   settings.cw_side_tone = 800;
   settings.vfo_a = 3573000l;
   settings.vfo_b = 7074000l;

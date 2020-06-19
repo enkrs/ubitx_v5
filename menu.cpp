@@ -3,6 +3,7 @@
 #include "encoder.h"
 #include "hw.h"
 #include "mainloop.h"
+#include "keyer.h"
 #include "si5351.h"
 #include "ubitx.h"
 #include "ui.h"
@@ -353,10 +354,19 @@ unsigned char MenuSetupKeyer(unsigned char event) {
 unsigned char MenuTxToggle(unsigned char event) {
   switch (event) {
     case EVENT_SELECTED:
-      ui::PrintLineValue(6, "TX INHIBIT", ubitx::status.tx_inhibit ? STR_ON : STR_OFF);
+      //ui::PrintLineValue(6, "TX INHIBIT", ubitx::status.tx_inhibit ? STR_ON : STR_OFF);
+      ui::PrintLine(6, "TX CW TEST");
       return STATE_SELECTING_MENU;
     case EVENT_ACTIVE:
-      ubitx::status.tx_inhibit = !ubitx::status.tx_inhibit;
+      //ubitx::status.tx_inhibit = !ubitx::status.tx_inhibit;
+      ubitx::TxStartCw();
+      for (int i=1; i<5; i++) {
+        keyer::CwKeydown();
+        delay(200);
+        keyer::CwKeyUp();
+        delay(500);
+      }
+      ubitx::TxStop();
       return STATE_EXIT;
   }
   return STATE_EXIT;
